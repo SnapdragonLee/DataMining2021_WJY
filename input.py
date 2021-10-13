@@ -1,12 +1,22 @@
 import numpy as np
 import copy
-import pandas as pd
-import seaborn as sns
 import matplotlib.pyplot as plt
 from collections import Counter
+import pandas as pd
+import seaborn as env
+
+"""
+    数据读取部分，本应做根据序号做key的字典，但目前没有实现
+"""
 
 
 def read_data(file_path, is_train_data=True):
+    """
+    数据读取
+    :param file_path: 文件地址
+    :param is_train_data: 是训练数据还是测试数据 默认为训练数据 即含有emotion
+    :return: 字典，由 'ids','contents','characters','emotions' 作为key 对于测试数据则没有emotions
+    """
     script_ids = []
     scene_nums = []
     sentence_nums = []
@@ -41,6 +51,11 @@ def read_data(file_path, is_train_data=True):
 
 
 def delete_empty_data(data):
+    """
+    原始数据中存在情感为空的数据，通过调用该方法，返回一个不含无效句的列表
+    :param data: read_data方法的返回值
+    :return: 删除无效内容后的返回值
+    """
     copy_data = copy.deepcopy(data)
     emotions = copy_data['emotions']
     rm = []
@@ -65,21 +80,57 @@ def delete_empty_data(data):
 
 
 def split_emotion(emotions):
+    """
+    情感分解，将read_data()的返回值中emotions对应的值传入，返回将其转化为int列表的形式（原为str）
+    :param emotions: read_data()的返回值中emotions对应的值
+    :return: emotions 转化为int列表的形式
+    """
     new_emotions = [[int(level) for level in emotion_as_str.split(',')]
                     for emotion_as_str in emotions]
-    return new_emotions
+    emotions_as_str = []
+    for emotion_as_str in emotions:
+        s = ''
+        l = emotion_as_str.split(',')
+        s = s.join(l)
+        emotions_as_str.append(s)
+    return new_emotions, emotions_as_str
 
 
-if __name__ == '__main__':
-    test_data_path = "D:/ML/transformer/test_dataset.tsv"
-    train_data_path = "D:/ML/transformer/train_dataset_v2.tsv"
+def show_data_distributed(train_data_path):
+    """
+    观察数据规模的方法，主要包含单个情感程度分布，情感间相关性（注释部分）
+    注意：注释部分运行较慢，若想看需等待较长时间
+    :param train_data_path 训练数据文件路径
+    """
+
     data = read_data(train_data_path)
     data_with_label = delete_empty_data(data)
     print("before: {0}".format(len(data['contents'])))
     print('after: {0}'.format(len(data_with_label['contents'])))
-    data_with_label['emotions'] = split_emotion(data_with_label['emotions'])
-    emotions = np.array(data_with_label['emotions'])
 
+    data_with_label['emotions'], emotion_as_str = split_emotion(data_with_label['emotions'])
+
+    # plt.figure('diff type emotion hist')
+    # plt.hist(emotion_as_str)
+
+    # plt.figure('diff type emotion pie')
+    cross_type = Counter(emotion_as_str)
+    size = []
+    # labels = cross_type.keys()
+    for name in cross_type.keys():
+        size.append(cross_type[name])
+    # plt.pie(size, labels=labels)
+    # plt.show()
+
+    print('emotion type num {0}'.format(len(cross_type.keys())))
+
+    emotions = np.array(data_with_label['emotions'])
+    panda_f = pd.DataFrame(emotions)
+    # env.pairplot(panda_f, kind='kde')
+    # plt.show()
+
+    print('exit emotion type and num: {0}'.format(Counter(emotion_as_str)))
+    labels = [0, 1, 2, 3]
     for i in range(6):
         plt.figure('emotion{0} his'.format(i))
         plt.hist(emotions[:, i])
@@ -93,5 +144,13 @@ if __name__ == '__main__':
             num.append(times[j])
         print('emotion {0}: proportion {1}'.format(i, per))
         plt.figure('emotion{0} pie'.format(i))
-        plt.pie(num)
+        plt.pie(num, labels=labels)
+
     plt.show()
+
+
+if __name__ == '__main__':
+    pass
+    test_data_path = "D:/ML/transformer/test_dataset.tsv"
+    train_data_path = "D:/ML/transformer/train_dataset_v2.tsv"
+    show_data_distributed(train_data_path)

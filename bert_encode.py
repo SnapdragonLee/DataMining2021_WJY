@@ -11,10 +11,19 @@ class bert_encoder:
     tokenizer_class: BertTokenizer
 
     def __init__(self, pretrained_model_path):
+        """
+        初始化 读入模型与分词器
+        :param pretrained_model_path: 模型文件（文件夹名称）
+        """
         self.model = BertModel.from_pretrained(pretrained_model_path, from_tf=True)
         self.tokenizer_class = BertTokenizer.from_pretrained(pretrained_model_path)
 
     def chinese2encode_bert(self, sentences):
+        """
+        通过预训练模型得到预编码后的特征向量组
+        :param sentences: 语句序列 应为元组
+        :return: 特征向量组
+        """
         assert type(sentences) is tuple
 
         train_tokenized = [self.tokenizer_class.encode(test) for test in sentences]
