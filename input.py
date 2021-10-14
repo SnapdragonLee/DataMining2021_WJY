@@ -6,6 +6,7 @@ import pandas as pd
 import seaborn as env
 
 """
+    pip install seaborn
     数据读取部分，本应做根据序号做key的字典，但目前没有实现
 """
 
@@ -15,7 +16,8 @@ def read_data(file_path, is_train_data=True):
     数据读取
     :param file_path: 文件地址
     :param is_train_data: 是训练数据还是测试数据 默认为训练数据 即含有emotion
-    :return: 字典，由 'ids','contents','characters','emotions' 作为key 对于测试数据则没有emotions
+    :return:    字典1，由 'ids','contents','characters','emotions' 作为key 对于测试数据则没有emotions
+                字典2，id对应语句内容，便于查找前后文
     """
     script_ids = []
     scene_nums = []
@@ -34,6 +36,7 @@ def read_data(file_path, is_train_data=True):
                 else:
                     id, content, character = item[0], item[1], item[2]
                 script_id, scene_num, sentence_num = id.split('_')[0], id.split('_')[1], id.split('_')[3]
+                id = (int(script_id), int(scene_num), int(sentence_num))
                 script_ids.append(script_id)
                 scene_nums.append(scene_num)
                 sentence_nums.append(sentence_num)
@@ -43,11 +46,14 @@ def read_data(file_path, is_train_data=True):
                 if is_train_data:
                     emotions.append(emotion)
             index += 1
-    m_ids = {'script_ids': script_ids, 'scene_nums': scene_nums, 'sentence_nums': sentence_nums, 'ids': ids}
+    content_dic = {}
+    for i in range(len(ids)):
+        content_dic[ids[i]] = contents[i]
+
     if is_train_data:
-        return {'ids': m_ids, 'contents': contents, 'characters': characters, 'emotions': emotions}
+        return {'ids': ids, 'contents': contents, 'characters': characters, 'emotions': emotions}, content_dic
     else:
-        return {'ids': m_ids, 'contents': contents, 'characters': characters}
+        return {'ids': ids, 'contents': contents, 'characters': characters}, content_dic
 
 
 def delete_empty_data(data):
@@ -79,7 +85,7 @@ def delete_empty_data(data):
     return copy_data
 
 
-def split_emotion(emotions):
+def split_emotion(emotions, get_emotion_as_str=False):
     """
     情感分解，将read_data()的返回值中emotions对应的值传入，返回将其转化为int列表的形式（原为str）
     :param emotions: read_data()的返回值中emotions对应的值
@@ -93,7 +99,10 @@ def split_emotion(emotions):
         l = emotion_as_str.split(',')
         s = s.join(l)
         emotions_as_str.append(s)
-    return new_emotions, emotions_as_str
+    if get_emotion_as_str:
+        return new_emotions, emotions_as_str
+    else:
+        return new_emotions
 
 
 def show_data_distributed(train_data_path):
@@ -103,12 +112,12 @@ def show_data_distributed(train_data_path):
     :param train_data_path 训练数据文件路径
     """
 
-    data = read_data(train_data_path)
+    data, content_dic = read_data(train_data_path)
     data_with_label = delete_empty_data(data)
     print("before: {0}".format(len(data['contents'])))
     print('after: {0}'.format(len(data_with_label['contents'])))
 
-    data_with_label['emotions'], emotion_as_str = split_emotion(data_with_label['emotions'])
+    data_with_label['emotions'], emotion_as_str = split_emotion(data_with_label['emotions'], True)
 
     # plt.figure('diff type emotion hist')
     # plt.hist(emotion_as_str)
@@ -153,4 +162,4 @@ if __name__ == '__main__':
     pass
     test_data_path = "D:/ML/transformer/test_dataset.tsv"
     train_data_path = "D:/ML/transformer/train_dataset_v2.tsv"
-    show_data_distributed(train_data_path)
+    read_data(train_data_path)

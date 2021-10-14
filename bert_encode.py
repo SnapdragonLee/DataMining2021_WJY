@@ -5,6 +5,12 @@ import os
 import tensorflow
 import numpy as np
 
+"""
+    pip install tensorflow
+    pip install transformers
+    install pytorch in it website by yourself
+"""
+
 
 class bert_encoder:
     model: BeitModel
