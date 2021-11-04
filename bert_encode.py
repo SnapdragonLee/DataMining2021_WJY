@@ -13,7 +13,7 @@ import numpy as np
 
 
 class bert_encoder:
-    model: BeitModel
+    model: BertModel
     tokenizer_class: BertTokenizer
 
     def __init__(self, pretrained_model_path):
@@ -21,7 +21,7 @@ class bert_encoder:
         初始化 读入模型与分词器
         :param pretrained_model_path: 模型文件（文件夹名称）
         """
-        self.model = BertModel.from_pretrained(pretrained_model_path, from_tf=True)
+        self.model = BertModel.from_pretrained(pretrained_model_path, from_tf=False)
         self.tokenizer_class = BertTokenizer.from_pretrained(pretrained_model_path)
 
     def chinese2encode_bert(self, sentences):
