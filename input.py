@@ -5,10 +5,26 @@ from collections import Counter
 import pandas as pd
 import seaborn as env
 
+import path
+
 """
     pip install seaborn
     数据读取部分，本应做根据序号做key的字典，但目前没有实现
 """
+
+
+def get_data(is_train_data=True):
+    """
+    读取数据的函数，
+    :return: dic由 'ids','contents','characters','emotions' ,'merged_sentences'作为key
+            调用时可用 merged_sentences中的句子 句子形式 content + '角色' + character
+    """
+    data_path = path.train_data_path if is_train_data else path.test_data_path
+    data, table = read_data(data_path, is_train_data)
+    data = delete_empty_data(data)
+    data['emotions'] = split_emotion(data['emotions'])
+    data = sentence_merging(data)
+    return data
 
 
 def read_data(file_path, is_train_data=True):
@@ -33,6 +49,7 @@ def read_data(file_path, is_train_data=True):
                 item = line.replace('\n', '').split('\t')
                 if is_train_data:
                     id, content, character, emotion = item[0], item[1], item[2], item[3]
+
                 else:
                     id, content, character = item[0], item[1], item[2]
                 script_id, scene_num, sentence_num = id.split('_')[0], id.split('_')[1], id.split('_')[3]
@@ -105,14 +122,14 @@ def split_emotion(emotions, get_emotion_as_str=False):
         return new_emotions
 
 
-def show_data_distributed(train_data_path):
+def show_data_distributed(data_path):
     """
     观察数据规模的方法，主要包含单个情感程度分布，情感间相关性（注释部分）
     注意：注释部分运行较慢，若想看需等待较长时间
-    :param train_data_path 训练数据文件路径
+    :param data_path 训练数据文件路径
     """
 
-    data, content_dic = read_data(train_data_path)
+    data, content_dic = read_data(data_path)
     data_with_label = delete_empty_data(data)
     print("before: {0}".format(len(data['contents'])))
     print('after: {0}'.format(len(data_with_label['contents'])))
@@ -158,8 +175,29 @@ def show_data_distributed(train_data_path):
     plt.show()
 
 
+def sentence_merging(_data: dict):
+    sentences = _data['contents']
+    characters = _data['characters']
+    merged_sentences = []
+    for i in range(len(sentences)):
+        merged_sentence = sentences[i] + '角色：' + characters[i]
+        merged_sentences.append(merged_sentence)
+    _data['merged_sentences'] = merged_sentences;
+    return _data
+
+
+def main():
+    test_data_path = path.test_data_path
+    train_data_path = path.train_data_path
+    data, table = read_data(train_data_path)
+    data = delete_empty_data(data)
+    data['emotions'] = split_emotion(data['emotions'])
+    print(type(data['emotions']))
+    print(data['emotions'][20000:])
+    data = sentence_merging(data)
+    # print(data['merged_sentences'])
+
+
 if __name__ == '__main__':
     pass
-    test_data_path = "D:/ML/transformer/test_dataset.tsv"
-    train_data_path = "D:/ML/transformer/train_dataset_v2.tsv"
-    read_data(train_data_path)
+    main()
