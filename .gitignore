@@ -2,7 +2,9 @@
 pre_treated_dataset.txt
 encode.csv
 RandomForestRegressor.model
-
+*.csv
+*.tsv
+test_dataset_bert_encode.txt
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

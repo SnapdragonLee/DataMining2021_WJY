@@ -21,8 +21,9 @@ def get_data(is_train_data=True):
     """
     data_path = path.train_data_path if is_train_data else path.test_data_path
     data, table = read_data(data_path, is_train_data)
-    data = delete_empty_data(data)
-    data['emotions'] = split_emotion(data['emotions'])
+    if is_train_data:
+        data = delete_empty_data(data)
+        data['emotions'] = split_emotion(data['emotions'])
     data = sentence_merging(data)
     return data
 
@@ -52,8 +53,9 @@ def read_data(file_path, is_train_data=True):
 
                 else:
                     id, content, character = item[0], item[1], item[2]
+                origin_id = id
                 script_id, scene_num, sentence_num = id.split('_')[0], id.split('_')[1], id.split('_')[3]
-                id = (int(script_id), int(scene_num), int(sentence_num))
+                id = (origin_id, int(script_id), int(scene_num), int(sentence_num))
                 script_ids.append(script_id)
                 scene_nums.append(scene_num)
                 sentence_nums.append(sentence_num)
