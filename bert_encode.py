@@ -44,6 +44,7 @@ class BertEncoder:
 
         padded = np.array([i + [0] * (train_max_len - len(i)) for i in train_tokenized])
 
+
         features = np.empty(shape=[0, 768])
         for i in range(padded.shape[0] // split_batch + 1):
             print("finish{0}/{1}".format(i, padded.shape[0] // split_batch + 1))
@@ -56,10 +57,12 @@ class BertEncoder:
             attention_mask = torch.tensor(attention_mask)
             attention_mask = attention_mask.to(device=torch.device('cuda' if torch.cuda.is_available() else 'cpu'))
 
+
             with torch.no_grad():
                 last_hidden_states = self.model(input_ids, attention_mask=attention_mask)
 
             temp = last_hidden_states[0][:, 0, :].cpu().numpy()
+
             """
             print(i)
             print(temp.shape)
@@ -67,6 +70,7 @@ class BertEncoder:
             print(features)
             """
             features = np.append(features, temp, axis=0)
+
 
         print('ans shape:' + str(features.shape))
         # print(features)

@@ -1,13 +1,12 @@
-import numpy as np
 from sklearn.ensemble import RandomForestRegressor
 from sklearn import metrics
 import input
 import seaborn as sb
-import matplotlib.pyplot as plt
-from bert_encode import *
-from input import *
+
 import pickle
 import tool
+from bert_encode import *
+from input import *
 
 
 def main():
@@ -28,13 +27,15 @@ def main():
     """
 
     y, x = pre_treated_dataset
+
+
     l = int(len(y) * 0.8)
     y_train = y[:l]
     x_train = x[:l]
     y_test = y[l:]
     test_x = x[l:]
     regressor = RandomForestRegressor(n_estimators=200)
-    regressor.fit(X=x, y=y)
+    regressor.fit(X=x_train, y=y_train)
 
     with open('RandomForestRegressor.model', 'wb') as r_f_r:
         pickle.dump(regressor, r_f_r)
@@ -54,6 +55,7 @@ def main():
 
     for i in range(6):
         tool.liner_plot(y_test, y_pred, str(i))
+
     plt.show()
 
 
