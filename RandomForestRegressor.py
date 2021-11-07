@@ -3,31 +3,31 @@ from sklearn.ensemble import RandomForestRegressor
 from sklearn import metrics
 import input
 import seaborn as sb
-import pandas as pd
+import matplotlib.pyplot as plt
 from bert_encode import *
 from input import *
+import pickle
+import tool
 
 
 def main():
-
     encoder = BertEncoder(path.pretrained_model)
     data_set = input.get_data()
-    y, x = encoder.stitch_characters_and_encode(data_set)
-    df = pd.DataFrame(data=[y, x], index=['y', 'x'])
-    print(df)
-    df.to_csv('encode.csv')
-    print('encode done')
+    pre_treated_dataset = encoder.stitch_characters_and_encode(data_set)
 
-    encode_data = pd.read_csv('encode.csv', index_col=0)
-    pass
-    encode_data = encode_data.to_dict('index')
-    x = []
-    y = []
+    print('bert encoding finish')
 
-    for i in encode_data['x'].keys():
-        x.append(np.array([float(num) for num in encode_data['x'][i][1:-1].split()]))
-        y.append(np.array([float(num) for num in encode_data['y'][i][1:-1].split(', ')]))
+    with open('pre_treated_dataset.txt', 'wb') as p_t_d_f:
+        pickle.dump(pre_treated_dataset, p_t_d_f)
 
+    print('bert encoding finish and saved')
+
+    """
+    with open('pre_treated_dataset.txt', 'rb') as p_t_d_f:
+        pre_treated_dataset = pickle.load(p_t_d_f)
+    """
+
+    y, x = pre_treated_dataset
     l = int(len(y) * 0.8)
     y_train = y[:l]
     x_train = x[:l]
@@ -35,12 +35,25 @@ def main():
     test_x = x[l:]
     regressor = RandomForestRegressor(n_estimators=200)
     regressor.fit(X=x, y=y)
+
+    with open('RandomForestRegressor.model', 'wb') as r_f_r:
+        pickle.dump(regressor, r_f_r)
+
+    print('RandomForest fit and save')
+
+    """
+    with open('RandomForestRegressor.model', 'rb') as r_f_r:
+        regressor = pickle.load(r_f_r)
+    """
+
     y_pred = regressor.predict(test_x)
     print('Mean Absolute Error:', metrics.mean_absolute_error(y_test, y_pred))
     print('Mean Squared Error:', metrics.mean_squared_error(y_test, y_pred))
     print('Root Mean Squared Error:',
           np.sqrt(metrics.mean_squared_error(y_test, y_pred)))
-    sb.pairplot(y_pred, y_test)
+
+    for i in range(6):
+        tool.liner_plot(y_test, y_pred, str(i))
     plt.show()
 
 
