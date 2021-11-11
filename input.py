@@ -9,6 +9,7 @@ import path
 
 """
     pip install seaborn
+    pip install pandas
     数据读取部分，本应做根据序号做key的字典，但目前没有实现
 """
 
@@ -55,7 +56,10 @@ def read_data(file_path, is_train_data=True):
                     id, content, character = item[0], item[1], item[2]
                 origin_id = id
                 script_id, scene_num, sentence_num = id.split('_')[0], id.split('_')[1], id.split('_')[3]
-                id = (origin_id, int(script_id), int(scene_num), int(sentence_num))
+                if is_train_data:
+                    id = (int(script_id), int(scene_num), int(sentence_num))
+                else:
+                    id = (origin_id, int(script_id), int(scene_num), int(sentence_num))
                 script_ids.append(script_id)
                 scene_nums.append(scene_num)
                 sentence_nums.append(sentence_num)
@@ -177,6 +181,39 @@ def show_data_distributed(data_path):
     plt.show()
 
 
+def show_positive_negative_mix(data_set: dict):
+    emotions1 = data_set['emotions']
+    emotions = np.array(emotions1)
+    love = emotions[:, 0]
+    joy = emotions[:, 1]
+    shock = emotions[:, 2]
+    anger = emotions[:, 3]
+    fear = emotions[:, 4]
+    sad = emotions[:, 5]
+
+    """
+    pd_f = pd.DataFrame(emotions1, columns=['love', 'joy', 'shock', 'anger', 'fear', 'sad'])
+    env.pairplot(pd_f, kind='kde')
+    plt.show()
+    """
+    pn_data = []
+    for i in range(len(emotions)):
+        ans = 0
+        if love[i] > 0 or joy[i] > 0:
+            ans += 1
+        if shock[i] > 0:
+            ans += 2
+        if anger[i] > 0 or sad[i] > 0:
+            ans += 4
+        if fear[i] > 0:
+            ans += 16
+        pn_data.append(ans)
+    counter = Counter(pn_data)
+    print(counter)
+    plt.hist(pn_data)
+    plt.show()
+
+
 def sentence_merging(_data: dict):
     sentences = _data['contents']
     characters = _data['characters']
@@ -188,14 +225,18 @@ def sentence_merging(_data: dict):
     return _data
 
 
+def sentence_merging(basic_data_set: dict, id2content_data_set: dict):
+    pass
+
+
 def main():
     test_data_path = path.test_data_path
     train_data_path = path.train_data_path
     data, table = read_data(train_data_path)
     data = delete_empty_data(data)
     data['emotions'] = split_emotion(data['emotions'])
-    print(type(data['emotions']))
-    print(data['emotions'][20000:])
+    print('pretreated')
+    show_positive_negative_mix(data)
     data = sentence_merging(data)
     # print(data['merged_sentences'])
 
