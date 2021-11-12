@@ -226,7 +226,33 @@ def sentence_merging_character(_data: dict):
 
 
 def sentence_merging_up(basic_data_set: dict, id2content_data_set: dict):
-    pass
+    #最大拼接长度
+    maxsize = 400
+    #拼接句子数量
+    link_len = 0
+    linked_num= 0
+    link_sent = []
+    sent_ids = basic_data_set['ids']
+    sent_id = id2content_data_set['id']
+    sentence = id2content_data_set['contents']
+    for i in range(0, len(sentence)):
+        sent_size = 0
+        for j in range(i, 0):
+            #判断是否相同
+            if sentence[j] == sentence[j - 1]:
+                continue
+            #id前两项相等则拼接
+            if sent_ids[i][1] == sent_id[j][1] and sent_ids[i][2] == sent_id[j][2]:
+                sent_size += sentence[j].size()
+                #大于规定大小则停止
+                if sent_size >= maxsize:
+                    break;
+                link_sent[i] = sentence[j] + link_sent[i];
+                linked_num += 1;
+            #达到要求拼接数量则停止
+            if linked_num == link_len:
+                break
+    return link_sent
 
 
 def main():
