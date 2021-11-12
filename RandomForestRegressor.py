@@ -11,7 +11,7 @@ from input import *
 
 
 def predict():
-    with open('RandomForestRegressor.model', 'rb') as r_f_r:
+    with open('RandomForestRegressor n_estimators=400.model', 'rb') as r_f_r:
         regressor = pickle.load(r_f_r)
     print('load model done')
     test_data = input.get_data(False)
@@ -38,7 +38,7 @@ def predict():
         s = ','
         format_y.append(s.join(tmp_line))
     ids = [line[0] for line in test_data['ids']]
-    with open('submit.tsv','w') as submit_f:
+    with open('submit400.tsv','w') as submit_f:
         submit_f.write('id\temotion\n')
         for i in range(len(ids)):
             submit_f.write('{0}\t{1}\n'.format(ids[i],format_y[i]))
@@ -68,10 +68,10 @@ def train_and_save():
     x_train = x[:l]
     y_test = y[l:]
     test_x = x[l:]
-    regressor = RandomForestRegressor(n_estimators=200)
+    regressor = RandomForestRegressor(n_estimators=400)
     regressor.fit(X=x, y=y)
 
-    with open('RandomForestRegressor.model', 'wb') as r_f_r:
+    with open('RandomForestRegressor n_estimators=400.model', 'wb') as r_f_r:
         pickle.dump(regressor, r_f_r)
 
     print('RandomForest fit and save')

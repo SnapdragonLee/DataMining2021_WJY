@@ -18,14 +18,14 @@ def get_data(is_train_data=True):
     """
     读取数据的函数，
     :return: dic由 'ids','contents','characters','emotions' ,'merged_sentences'作为key
-            调用时可用 merged_sentences中的句子 句子形式 content + '角色' + character
+            调用时可用 merged_sentences中的句子 句子形式 content + '[MASK]角色' + character
     """
     data_path = path.train_data_path if is_train_data else path.test_data_path
     data, table = read_data(data_path, is_train_data)
     if is_train_data:
         data = delete_empty_data(data)
         data['emotions'] = split_emotion(data['emotions'])
-    data = sentence_merging(data)
+    data = sentence_merging_character(data)
     return data
 
 
@@ -214,18 +214,18 @@ def show_positive_negative_mix(data_set: dict):
     plt.show()
 
 
-def sentence_merging(_data: dict):
+def sentence_merging_character(_data: dict):
     sentences = _data['contents']
     characters = _data['characters']
     merged_sentences = []
     for i in range(len(sentences)):
-        merged_sentence = sentences[i] + '角色：' + characters[i]
+        merged_sentence = sentences[i] + '[MASK]角色：' + characters[i]
         merged_sentences.append(merged_sentence)
     _data['merged_sentences'] = merged_sentences;
     return _data
 
 
-def sentence_merging(basic_data_set: dict, id2content_data_set: dict):
+def sentence_merging_up(basic_data_set: dict, id2content_data_set: dict):
     pass
 
 
@@ -237,7 +237,7 @@ def main():
     data['emotions'] = split_emotion(data['emotions'])
     print('pretreated')
     show_positive_negative_mix(data)
-    data = sentence_merging(data)
+    data = sentence_merging_character(data)
     # print(data['merged_sentences'])
 
 
