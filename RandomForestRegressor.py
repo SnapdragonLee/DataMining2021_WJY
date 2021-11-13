@@ -11,7 +11,7 @@ from input import *
 
 
 def predict():
-    with open('RandomForestRegressor n_estimators=400.model', 'rb') as r_f_r:
+    with open('RandomForestRegressor link s n_estimators=200.model', 'rb') as r_f_r:
         regressor = pickle.load(r_f_r)
     print('load model done')
     test_data = input.get_data(False)
@@ -73,7 +73,7 @@ def train_and_save():
     regressor = RandomForestRegressor(n_estimators=200)
     regressor.fit(X=x_train, y=y_train)
 
-    with open('RandomForestRegressor n_estimators=400.model', 'wb') as r_f_r:
+    with open('RandomForestRegressor link s n_estimators=200.model', 'wb') as r_f_r:
         pickle.dump(regressor, r_f_r)
 
     print('RandomForest fit and save')
