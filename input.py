@@ -6,6 +6,7 @@ import pandas as pd
 import seaborn as env
 
 import path
+import const_val as c_v
 
 """
     pip install seaborn
@@ -226,11 +227,12 @@ def sentence_merging_character(_data: dict):
 
 
 def sentence_merging_up(basic_data_set: dict, id2content_data_set: dict):
-    #最大拼接长度
-    maxsize = 400
-    #拼接句子数量
-    link_len = 0
-    linked_num= 0
+    # 最大拼接长度
+    maxsize = c_v.MAX_SIZE_OF_CONTENT
+    # 拼接句子数量
+    link_len = c_v.MAX_LINK_NUM_OF_CONTENT
+
+    linked_num = 0
     link_sent = []
     sent_ids = basic_data_set['ids']
 
@@ -238,25 +240,25 @@ def sentence_merging_up(basic_data_set: dict, id2content_data_set: dict):
         sent_size = 0
         id = sent_ids[i]
         link_sent[i] = id2content_data_set[id]
-        for j in range(1, i-1):
+        for j in range(1, i - 1):
             look_for = (id[0], id[1], id[2] - j)
             look_for_s = id2content_data_set.get(look_for)
             look_for_same = (id[0], id[1], id[2] - j + 1)
             look_for_same_s = id2content_data_set.get(look_for_same)
-            #判断是否相同
+            # 判断是否相同
 
             if look_for_s == look_for_same_s:
                 continue
 
             sent_size += look_for_s.size()
 
-            #大于规定大小则停止
+            # 大于规定大小则停止
             if sent_size >= maxsize:
                 break
 
             link_sent[i] = look_for_s + link_sent[i]
             linked_num += 1
-            #达到要求拼接数量则停止
+            # 达到要求拼接数量则停止
             if linked_num == link_len:
                 break
     return link_sent
@@ -269,7 +271,9 @@ def main():
     data = delete_empty_data(data)
     data['emotions'] = split_emotion(data['emotions'])
     print('pretreated')
-    show_positive_negative_mix(data)
+    linked_content = sentence_merging_up(data, table)
+    for i in range(10, 20):
+        pass
     data = sentence_merging_character(data)
     # print(data['merged_sentences'])
 
