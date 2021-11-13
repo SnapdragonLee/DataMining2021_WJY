@@ -37,15 +37,15 @@ class BertEncoder:
         split_batch = 100
 
         train_tokenized = [self.tokenizer_class.encode(text) for text in sentences]
-        print(train_tokenized)
+
+        # print(train_tokenized)
         train_max_len = 0
         for i in train_tokenized:
             if len(i) > train_max_len:
                 train_max_len = len(i)
 
         padded = np.array([i + [0] * (train_max_len - len(i)) for i in train_tokenized])
-
-
+        print('bert tokenized finish shape is {0}'.format(str(padded.shape)))
         features = np.empty(shape=[0, 768])
         for i in range(padded.shape[0] // split_batch + 1):
             print("finish{0}/{1}".format(i, padded.shape[0] // split_batch + 1))
@@ -57,7 +57,6 @@ class BertEncoder:
 
             attention_mask = torch.tensor(attention_mask)
             attention_mask = attention_mask.to(device=torch.device('cuda' if torch.cuda.is_available() else 'cpu'))
-
 
             with torch.no_grad():
                 last_hidden_states = self.model(input_ids, attention_mask=attention_mask)
@@ -72,8 +71,7 @@ class BertEncoder:
             """
             features = np.append(features, temp, axis=0)
 
-
-        print('ans shape:' + str(features.shape))
+        print('bert encode shape:' + str(features.shape))
         # print(features)
 
         return features

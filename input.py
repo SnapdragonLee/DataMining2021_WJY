@@ -15,18 +15,44 @@ import const_val as c_v
 """
 
 
+def build_train_data():
+    """
+    构造训练数据 其中包括原语句与扩展语句 需要调用随机语句
+    :return: y, x 数据与标签
+    """
+    dic = get_data()
+    y = []
+    x = []
+    link_content_merged = dic['link_content_merged']
+    merged_sentences = dic['merged_sentences']
+    emotions = dic['emotions']
+    for i in range(len(emotions)):
+        x.append(link_content_merged[i])
+        y.append(emotions[i])
+        x.append(merged_sentences[i])
+        y.append(emotions[i])
+    print('build data')
+    return y, x
+
+
 def get_data(is_train_data=True):
     """
     读取数据的函数，
     :return: dic由 'ids','contents','characters','emotions' ,'merged_sentences'作为key
             调用时可用 merged_sentences中的句子 句子形式 content + '[MASK]角色' + character
+            新增 key ‘link_content’ 向前拼接的句子 'link_content_merged' 句子增加角色名
     """
     data_path = path.train_data_path if is_train_data else path.test_data_path
     data, table = read_data(data_path, is_train_data)
     if is_train_data:
         data = delete_empty_data(data)
         data['emotions'] = split_emotion(data['emotions'])
-    data = sentence_merging_character(data)
+        linked_content = sentence_merging_up(data, table)
+        data['link_content'] = linked_content
+        merged_sentences_link = sentence_merging_character(data, 'link_content')
+        merged_sentences = sentence_merging_character(data)
+        data['merged_sentences'] = merged_sentences
+        data['link_content_merged'] = merged_sentences_link
     return data
 
 
@@ -215,42 +241,42 @@ def show_positive_negative_mix(data_set: dict):
     plt.show()
 
 
-def sentence_merging_character(_data: dict):
-    sentences = _data['contents']
+def sentence_merging_character(_data: dict, origin_key='contents'):
+    sentences = _data[origin_key]
     characters = _data['characters']
     merged_sentences = []
     for i in range(len(sentences)):
         merged_sentence = sentences[i] + '[MASK]角色：' + characters[i]
         merged_sentences.append(merged_sentence)
-    _data['merged_sentences'] = merged_sentences;
-    return _data
+    return merged_sentences
 
 
-def sentence_merging_up(basic_data_set: dict, id2content_data_set: dict):
+def sentence_merging_up(basic_data_set: dict, id2content_data_set: dict, max_link_size=c_v.MAX_SIZE_OF_CONTENT):
     # 最大拼接长度
-    maxsize = c_v.MAX_SIZE_OF_CONTENT
+    maxsize = max_link_size
     # 拼接句子数量
     link_len = c_v.MAX_LINK_NUM_OF_CONTENT
 
-    linked_num = 0
     link_sent = []
     sent_ids = basic_data_set['ids']
 
     for i in range(0, len(sent_ids)):
+        linked_num = 0
         sent_size = 0
         id = sent_ids[i]
-        link_sent[i] = id2content_data_set[id]
+        link_sent.append(id2content_data_set[id])
         for j in range(1, i - 1):
             look_for = (id[0], id[1], id[2] - j)
             look_for_s = id2content_data_set.get(look_for)
             look_for_same = (id[0], id[1], id[2] - j + 1)
             look_for_same_s = id2content_data_set.get(look_for_same)
             # 判断是否相同
-
+            if look_for_s is None:
+                break
             if look_for_s == look_for_same_s:
                 continue
 
-            sent_size += look_for_s.size()
+            sent_size += len(look_for_s)
 
             # 大于规定大小则停止
             if sent_size >= maxsize:
@@ -272,10 +298,10 @@ def main():
     data['emotions'] = split_emotion(data['emotions'])
     print('pretreated')
     linked_content = sentence_merging_up(data, table)
+    ids = data['ids']
     for i in range(10, 20):
-        pass
-    data = sentence_merging_character(data)
-    # print(data['merged_sentences'])
+        print(ids[i])
+        print(linked_content[i])
 
 
 if __name__ == '__main__':
