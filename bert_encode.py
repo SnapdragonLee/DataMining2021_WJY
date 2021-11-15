@@ -87,6 +87,7 @@ def main():
     st = ["这是一个[MASK]测试语句", "这是一个测试语句", "这是一个苹果[MASK]", "这是一个苹果", "我爱[MASK]吃苹果", "我爱吃苹果"]
     bert_encoder1 = BertEncoder(pretrained_model)
     bert_encoder1.chinese2encode_bert(st)
+    del bert_encoder1
 
 
 if __name__ == '__main__':

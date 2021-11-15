@@ -27,10 +27,16 @@ def build_train_data():
     merged_sentences = dic['merged_sentences']
     emotions = dic['emotions']
     for i in range(len(emotions)):
-        x.append(link_content_merged[i])
-        y.append(emotions[i])
-        x.append(merged_sentences[i])
-        y.append(emotions[i])
+        if emotions[i].count(0) < 6:
+            #
+            x.append(link_content_merged[i])
+            y.append(emotions[i])
+            x.append(merged_sentences[i])
+            y.append(emotions[i])
+        else:
+            # print(emotions)
+            x.append(merged_sentences[i])
+            y.append(emotions[i])
     print('build data')
     return y, x
 
@@ -291,17 +297,7 @@ def sentence_merging_up(basic_data_set: dict, id2content_data_set: dict, max_lin
 
 
 def main():
-    test_data_path = path.test_data_path
-    train_data_path = path.train_data_path
-    data, table = read_data(train_data_path)
-    data = delete_empty_data(data)
-    data['emotions'] = split_emotion(data['emotions'])
-    print('pretreated')
-    linked_content = sentence_merging_up(data, table)
-    ids = data['ids']
-    for i in range(10, 20):
-        print(ids[i])
-        print(linked_content[i])
+    build_train_data()
 
 
 if __name__ == '__main__':

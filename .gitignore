@@ -7,6 +7,9 @@ RandomForestRegressor.model
 *.model
 test_dataset_bert_encode.txt
 path.py
+regressorModel/
+submit file/
+tmpData/
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]

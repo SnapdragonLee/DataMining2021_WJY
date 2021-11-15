@@ -11,10 +11,10 @@ def liner_plot(ans, predictions, figure_name):
     plt.xlim([0, plt.xlim()[1]])
     plt.ylim([0, plt.ylim()[1]])
     _ = plt.plot([-100, 100], [-100, 100])
-
+    ans = ans.astype(int)
     diff = [[], [], [], []]
     for i in range(len(ans)):
-        diff[predictions[i]].append(abs(ans[i] - predictions[i]))
+        diff[ans[i]].append(abs(ans[i] - predictions[i]))
     for i in range(4):
         plt.figure('emotion id ' + figure_name + 'level ' + str(i))
         plt.hist(diff[i])
