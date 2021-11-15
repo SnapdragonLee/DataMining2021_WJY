@@ -4,6 +4,7 @@ import matplotlib.pyplot as plt
 from collections import Counter
 import pandas as pd
 import seaborn as env
+from sklearn.preprocessing import LabelEncoder
 
 import path
 import const_val as c_v
@@ -15,7 +16,7 @@ import const_val as c_v
 """
 
 
-def build_train_data():
+def build_train_data(classifier_data=False):
     """
     构造训练数据 其中包括原语句与扩展语句 需要调用随机语句
     :return: y, x 数据与标签
@@ -27,18 +28,19 @@ def build_train_data():
     merged_sentences = dic['merged_sentences']
     emotions = dic['emotions']
     for i in range(len(emotions)):
-        if emotions[i].count(0) < 6:
-            #
-            x.append(link_content_merged[i])
-            y.append(emotions[i])
-            x.append(merged_sentences[i])
-            y.append(emotions[i])
-        else:
-            # print(emotions)
-            x.append(merged_sentences[i])
-            y.append(emotions[i])
+        x.append(link_content_merged[i])
+        y.append(emotions[i])
+        x.append(merged_sentences[i])
+        y.append(emotions[i])
     print('build data')
-    return y, x
+    if classifier_data:
+        classifier_y = get_classifier_data(emotions)
+        encoder = LabelEncoder()
+        encoder = encoder.fit(classifier_y)
+        classifier_y = encoder.transform(classifier_y)
+        return classifier_y, x, encoder
+    else:
+        return y, x
 
 
 def get_data(is_train_data=True):
@@ -214,6 +216,39 @@ def show_data_distributed(data_path):
     plt.show()
 
 
+def get_classifier_data(emotions):
+    emotions = np.array(emotions)
+    need_emotion_combination = (100, 0, 1, 1000, 10, 101, 1100)
+    # Counter({0: 20526, 100: 7760, 1: 3062, 1000: 2113, 10: 1463, 101: 554, 1100: 475,
+    # 1010: 276, 110: 270, 11: 174, 1001: 70, 1110: 15, 111: 12, 1101: 8, 1111: 2, 1011: 2})
+    love = emotions[:, 0]
+    joy = emotions[:, 1]
+    shock = emotions[:, 2]
+    anger = emotions[:, 3]
+    fear = emotions[:, 4]
+    sad = emotions[:, 5]
+    pn_data = []
+    for i in range(len(emotions)):
+        ans = 0
+        level = []
+        if love[i] > 0 or joy[i] > 0:
+            ans += 1
+            level.append(love[i] + joy[i])
+        if shock[i] > 0:
+            ans += 10
+            level.append(shock[i])
+        if anger[i] > 0 or sad[i] > 0:
+            ans += 100
+            level.append(anger[i] + sad[i])
+        if fear[i] > 0:
+            ans += 1000
+            level.append(fear[i])
+        if ans not in need_emotion_combination:
+            ans = 10 ** level.index(max(level))
+        pn_data.append(ans)
+    return pn_data
+
+
 def show_positive_negative_mix(data_set: dict):
     emotions1 = data_set['emotions']
     emotions = np.array(emotions1)
@@ -235,11 +270,11 @@ def show_positive_negative_mix(data_set: dict):
         if love[i] > 0 or joy[i] > 0:
             ans += 1
         if shock[i] > 0:
-            ans += 2
+            ans += 10
         if anger[i] > 0 or sad[i] > 0:
-            ans += 4
+            ans += 100
         if fear[i] > 0:
-            ans += 16
+            ans += 1000
         pn_data.append(ans)
     counter = Counter(pn_data)
     print(counter)
@@ -297,7 +332,8 @@ def sentence_merging_up(basic_data_set: dict, id2content_data_set: dict, max_lin
 
 
 def main():
-    build_train_data()
+    data_set = get_data()
+    show_positive_negative_mix(data_set)
 
 
 if __name__ == '__main__':
