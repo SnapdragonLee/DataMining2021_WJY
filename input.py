@@ -16,7 +16,7 @@ import const_val as c_v
 """
 
 
-def build_train_data(classifier_data=False):
+def build_train_data():
     """
     构造训练数据 其中包括原语句与扩展语句 需要调用随机语句
     :return: y, x 数据与标签
@@ -33,14 +33,12 @@ def build_train_data(classifier_data=False):
         x.append(merged_sentences[i])
         y.append(emotions[i])
     print('build data')
-    if classifier_data:
-        classifier_y = get_classifier_data(emotions)
-        encoder = LabelEncoder()
-        encoder = encoder.fit(classifier_y)
-        classifier_y = encoder.transform(classifier_y)
-        return classifier_y, x, encoder
-    else:
-        return y, x
+
+    classifier_y = get_classifier_data(emotions)
+    encoder = LabelEncoder()
+    encoder = encoder.fit(classifier_y)
+    classifier_y = encoder.transform(classifier_y)
+    return y, x, classifier_y, encoder
 
 
 def get_data(is_train_data=True):

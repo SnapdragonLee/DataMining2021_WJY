@@ -1,3 +1,4 @@
+import numpy as np
 import pandas as pd
 import sklearn.ensemble
 from sklearn.ensemble import RandomForestRegressor
@@ -90,14 +91,17 @@ def read_data_encoded(dataset_name: str, have_encode=True):
             pre_treated_dataset = pickle.load(p_t_d_f)
         print("load data encoded")
     else:
-        y, x = input.build_train_data()
+        y, x, classifier_y, label_encoder = input.build_train_data()
         encoder = BertEncoder(path.pretrained_model)
         x = encoder.chinese2encode_bert(x)
         del encoder
         x = np.array(x)
         y = np.array(y)
+        classifier_y = np.array(classifier_y).T
         # 随机处理
         hstack = np.hstack((x, y))
+        hstack = np.hstack((hstack, classifier_y))
+        # TODO 完成随机后分割
         np.random.shuffle(hstack)
         y = hstack[:, -6:]
         x = hstack[:, :-6]
@@ -138,6 +142,15 @@ def classifier_predict_and_judge_effect(classifier: RandomForestClassifier, pre_
             wrong.append([y_pred[i], y_test[i]])
 
     print('Classifier accuracy:\t'.format(len(wrong) / len(y_pred)))
+    counter = Counter(wrong)
+    print('***************************')
+    print(counter)
+    print('***************************')
+
+
+def main():
+    # 读取数据
+    y, x, classifier_y, label_encoder = input.build_train_data()
 
 
 if __name__ == '__main__':
