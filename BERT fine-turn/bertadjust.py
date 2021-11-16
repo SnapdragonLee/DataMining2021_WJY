@@ -16,11 +16,14 @@ from functools import partial
 from transformers import AdamW, get_linear_schedule_with_warmup
 
 import os
-os.environ["CUDA_VISIBLE_DEVICES"] = '3'
 
-#加载数据
+# 本人电脑只有一个GPU 不需要该句
+# os.environ["CUDA_VISIBLE_DEVICES"] = '3'
+
+# 加载数据
 with open('data/train_dataset_v2.tsv', 'r', encoding='utf-8') as handler:
     lines = handler.read().split('\n')[1:-1]
+    # 第一句最后一句不要？
 
     data = list()
     for line in tqdm(lines):
@@ -37,48 +40,52 @@ test = pd.read_csv('data/test_dataset.tsv', sep='\t')
 submit = pd.read_csv('data/submit_example.tsv', sep='\t')
 train = train[train['emotions'] != '']
 
-#数据处理
-train['text'] = train[ 'content'].astype(str)  +'角色: ' + train['character'].astype(str)
+# 数据处理
+train['text'] = train['content'].astype(str) + '角色: ' + train['character'].astype(str)
 test['text'] = test['content'].astype(str) + ' 角色: ' + test['character'].astype(str)
 
 train['emotions'] = train['emotions'].apply(lambda x: [int(_i) for _i in x.split(',')])
 
 train[['love', 'joy', 'fright', 'anger', 'fear', 'sorrow']] = train['emotions'].values.tolist()
-test[['love', 'joy', 'fright', 'anger', 'fear', 'sorrow']] =[0,0,0,0,0,0]
+test[['love', 'joy', 'fright', 'anger', 'fear', 'sorrow']] = [0, 0, 0, 0, 0, 0]
 
-train.to_csv('data/train.csv',columns=['id', 'content', 'character','text','love', 'joy', 'fright', 'anger', 'fear', 'sorrow'],
+train.to_csv('data/train.csv',
+             columns=['id', 'content', 'character', 'text', 'love', 'joy', 'fright', 'anger', 'fear', 'sorrow'],
+             sep='\t',
+             index=False)
+
+test.to_csv('data/test.csv',
+            columns=['id', 'content', 'character', 'text', 'love', 'joy', 'fright', 'anger', 'fear', 'sorrow'],
             sep='\t',
             index=False)
 
-test.to_csv('data/test.csv',columns=['id', 'content', 'character','text','love', 'joy', 'fright', 'anger', 'fear', 'sorrow'],
-            sep='\t',
-            index=False)
+# 定义dataset
+target_cols = ['love', 'joy', 'fright', 'anger', 'fear', 'sorrow']
 
-#定义dataset
-target_cols=['love', 'joy', 'fright', 'anger', 'fear', 'sorrow']
+
 class RoleDataset(Dataset):
     def __init__(self, tokenizer, max_len, mode='train'):
         super(RoleDataset, self).__init__()
         if mode == 'train':
-            self.data = pd.read_csv('data/train.csv',sep='\t')
+            self.data = pd.read_csv('data/train.csv', sep='\t')
         else:
-            self.data = pd.read_csv('data/test.csv',sep='\t')
-        self.texts=self.data['text'].tolist()
-        self.labels=self.data[target_cols].to_dict('records')
+            self.data = pd.read_csv('data/test.csv', sep='\t')
+        self.texts = self.data['text'].tolist()
+        self.labels = self.data[target_cols].to_dict('records')
         self.tokenizer = tokenizer
         self.max_len = max_len
 
     def __getitem__(self, index):
-        text=str(self.texts[index])
-        label=self.labels[index]
+        text = str(self.texts[index])
+        label = self.labels[index]
 
-        encoding=self.tokenizer.encode_plus(text,
-                                            add_special_tokens=True,
-                                            max_length=self.max_len,
-                                            return_token_type_ids=True,
-                                            pad_to_max_length=True,
-                                            return_attention_mask=True,
-                                            return_tensors='pt',)
+        encoding = self.tokenizer.encode_plus(text,
+                                              add_special_tokens=True,
+                                              max_length=self.max_len,
+                                              return_token_type_ids=True,
+                                              pad_to_max_length=True,
+                                              return_attention_mask=True,
+                                              return_tensors='pt', )
 
         sample = {
             'texts': text,
@@ -87,13 +94,14 @@ class RoleDataset(Dataset):
         }
 
         for label_col in target_cols:
-            sample[label_col] = torch.tensor(label[label_col]/3.0, dtype=torch.float)
+            sample[label_col] = torch.tensor(label[label_col] / 3.0, dtype=torch.float)
         return sample
 
     def __len__(self):
         return len(self.texts)
 
-#create dataloader
+
+# create dataloader
 def create_dataloader(dataset, batch_size, mode='train'):
     shuffle = True if mode == 'train' else False
 
@@ -103,20 +111,24 @@ def create_dataloader(dataset, batch_size, mode='train'):
         data_loader = DataLoader(dataset, batch_size=batch_size, shuffle=shuffle)
     return data_loader
 
-#加载预训练模型
+
+# 加载预训练模型
 # roberta
-PRE_TRAINED_MODEL_NAME='hfl/chinese-roberta-wwm-ext'  # 'hfl/chinese-roberta-wwm-ext'
+PRE_TRAINED_MODEL_NAME = 'hfl/chinese-roberta-wwm-ext'  # 'hfl/chinese-roberta-wwm-ext'
 tokenizer = BertTokenizer.from_pretrained(PRE_TRAINED_MODEL_NAME)
 base_model = BertModel.from_pretrained(PRE_TRAINED_MODEL_NAME)  # 加载预训练模型
+
+
 # model = ppnlp.transformers.BertForSequenceClassification.from_pretrained(MODEL_NAME, num_classes=2)
 
-#模型构建
+# 模型构建
 def init_params(module_lst):
     for module in module_lst:
         for param in module.parameters():
             if param.dim() > 1:
                 torch.nn.init.xavier_uniform_(param)
     return
+
 
 class IQIYModelLite(nn.Module):
     def __init__(self, n_classes, model_name):
@@ -158,7 +170,7 @@ class IQIYModelLite(nn.Module):
         )
 
         init_params([self.out_love, self.out_joy, self.out_fright, self.out_anger,
-                     self.out_fear,  self.out_sorrow, self.attention])
+                     self.out_fear, self.out_sorrow, self.attention])
 
     def forward(self, input_ids, attention_mask):
         roberta_output = self.base(input_ids=input_ids,
@@ -167,7 +179,7 @@ class IQIYModelLite(nn.Module):
         last_layer_hidden_states = roberta_output.hidden_states[-1]
         weights = self.attention(last_layer_hidden_states)
         # print(weights.size())
-        context_vector = torch.sum(weights*last_layer_hidden_states, dim=1)
+        context_vector = torch.sum(weights * last_layer_hidden_states, dim=1)
         # context_vector = weights
 
         love = self.out_love(context_vector)
@@ -182,12 +194,13 @@ class IQIYModelLite(nn.Module):
             'anger': anger, 'fear': fear, 'sorrow': sorrow,
         }
 
-#参数配置
-EPOCHS=2
-weight_decay=0.0
-data_path='data'
-warmup_proportion=0.0
-batch_size=16
+
+# 参数配置
+EPOCHS = 2
+weight_decay = 0.0
+data_path = 'data'
+warmup_proportion = 0.0
+batch_size = 16
 lr = 1e-5
 max_len = 128
 
@@ -201,24 +214,24 @@ valid_loader = create_dataloader(valset, batch_size, mode='test')
 
 model = IQIYModelLite(n_classes=1, model_name=PRE_TRAINED_MODEL_NAME)
 
-
 model.cuda()
 
-if torch.cuda.device_count()>1:
+if torch.cuda.device_count() > 1:
     model = nn.DataParallel(model)
 
-optimizer = AdamW(model.parameters(), lr=lr, weight_decay=weight_decay) # correct_bias=False,
+optimizer = AdamW(model.parameters(), lr=lr, weight_decay=weight_decay)  # correct_bias=False,
 total_steps = len(train_loader) * EPOCHS
 
 scheduler = get_linear_schedule_with_warmup(
-  optimizer,
-  num_warmup_steps=warm_up_ratio*total_steps,
-  num_training_steps=total_steps
+    optimizer,
+    num_warmup_steps=warm_up_ratio * total_steps,
+    num_training_steps=total_steps
 )
 
 criterion = nn.BCEWithLogitsLoss().cuda()
 
-#模型训练
+
+# 模型训练
 def do_train(model, date_loader, criterion, optimizer, scheduler, metric=None):
     model.train()
     global_step = 0
@@ -244,7 +257,7 @@ def do_train(model, date_loader, criterion, optimizer, scheduler, metric=None):
 
             loss.backward()
 
-#             nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)
+            #             nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)
             optimizer.step()
             scheduler.step()
             optimizer.zero_grad()
@@ -259,7 +272,7 @@ def do_train(model, date_loader, criterion, optimizer, scheduler, metric=None):
 
 do_train(model, train_loader, criterion, optimizer, scheduler)
 
-#模型预测
+# 模型预测
 from collections import defaultdict
 
 model.eval()
@@ -271,27 +284,29 @@ for step, batch in tqdm(enumerate(valid_loader)):
     with torch.no_grad():
         logists = model(input_ids=b_input_ids, attention_mask=attention_mask)
         for col in target_cols:
-            out2 = logists[col].sigmoid().squeeze(1)*3.0
+            out2 = logists[col].sigmoid().squeeze(1) * 3.0
             test_pred[col].append(out2.cpu().numpy())
 
     print(test_pred)
     break
+
 
 def predict(model, test_loader):
     val_loss = 0
     test_pred = defaultdict(list)
     model.eval()
     model.cuda()
-    for  batch in tqdm(test_loader):
+    for batch in tqdm(test_loader):
         b_input_ids = batch['input_ids'].cuda()
         attention_mask = batch["attention_mask"].cuda()
         with torch.no_grad():
             logists = model(input_ids=b_input_ids, attention_mask=attention_mask)
             for col in target_cols:
-                out2 = logists[col].sigmoid().squeeze(1)*3.0
+                out2 = logists[col].sigmoid().squeeze(1) * 3.0
                 test_pred[col].extend(out2.cpu().numpy().tolist())
 
     return test_pred
+
 
 submit = pd.read_csv('data/submit_example.tsv', sep='\t')
 test_pred = predict(model, valid_loader)

@@ -1,18 +1,12 @@
-import numpy as np
-import pandas as pd
-import sklearn.ensemble
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.ensemble import RandomForestClassifier
 from sklearn import metrics
 
 import const_val
 import input
-import seaborn as sb
 
 import pickle
 
-import path
-import tool
 from bert_encode import *
 from input import *
 
