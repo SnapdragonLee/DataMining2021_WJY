@@ -115,7 +115,7 @@ def train_and_save_classifier(model_name: str, pre_treated_dataset, have_fit=Tru
             classifier = pickle.load(r_f_c)
         print('load classifier model')
         return classifier
-    classifier = RandomForestClassifier(n_estimators=400)
+    classifier = RandomForestClassifier(n_estimators=300)
     y, x = pre_treated_dataset
     l = int(len(y) * (1 - const_val.VERIFICATION_PERCENT / 100))
     y_train = y[:l]
@@ -139,7 +139,8 @@ def classifier_predict_and_judge_effect(classifier: RandomForestClassifier, pre_
         if y_pred[i] != y_test[i]:
             wrong.append([y_pred[i], y_test[i]])
 
-    print('Classifier accuracy: {0}\t'.format(len(wrong) / len(y_pred)))
+    print('Classifier accuracy: {0}\t'.format(1 - len(wrong) / len(y_pred)))
+    wrong = tuple(wrong)
     counter = Counter(wrong)
     print('***************************')
     print(counter)
@@ -167,7 +168,7 @@ def main():
     classifier_data = classifier_y, x
     # regressor = train_and_save_regressor('randomForestRegressor link1 400.model', regressor_data, False)
     # regressor_predict_and_judge_effect(regressor, regressor_data)
-    classifier = train_and_save_classifier('randomForestClassifier link1 400.model', classifier_data, False)
+    classifier = train_and_save_classifier('randomForestClassifier link1 300.model', classifier_data, False)
     classifier_predict_and_judge_effect(classifier, classifier_data)
 
 
