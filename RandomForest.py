@@ -77,7 +77,7 @@ def train_and_save_regressor(model_name: str, pre_treated_dataset, have_fit=True
     return regressor
 
 
-def predict_and_judge_effect(y_test, y_pred):
+def judge_effect_mse(y_test, y_pred):
     print('Mean Absolute Error:', metrics.mean_absolute_error(y_test, y_pred))
     print('Mean Squared Error:', metrics.mean_squared_error(y_test, y_pred))
     rmse = np.sqrt(metrics.mean_squared_error(y_test, y_pred))
@@ -150,14 +150,29 @@ def classifier_predict_and_judge_effect(classifier: RandomForestClassifier, pre_
     print('***************************')
 
 
+def regressor_predict_and_judge_effect(regressor: RandomForestRegressor, dataset):
+    y_test, x_test = get_test_data(dataset)
+    y_pred = regressor.predict(x_test)
+    judge_effect_mse(y_test, y_pred)
+
+
+def get_test_data(dataset):
+    y, x = dataset
+    l = int(len(y) * (1 - const_val.VERIFICATION_PERCENT / 100))
+    y_test = y[l:]
+    x_test = x[l:]
+    return y_test, x_test
+
+
 def main():
     # 读取数据
-    y, x, classifier_y, label_encoder = read_data_encoded('pretreatedDataset.pretreatedData', False)
+    y, x, classifier_y, label_encoder = read_data_encoded('pretreatedDataset.pretreatedData', True)
     regressor_data = y, x
     classifier_data = classifier_y, x
-    # regressor = train_and_save_regressor('randomForestRegressor link1 400.model', regressor_data, False)
-    classifier = train_and_save_classifier('randomForestClassifier link1 400', classifier_data, False)
-    classifier_predict_and_judge_effect(classifier, classifier_data)
+    regressor = train_and_save_regressor('randomForestRegressor link1 400.model', regressor_data, False)
+    regressor_predict_and_judge_effect(regressor, regressor_data)
+    # classifier = train_and_save_classifier('randomForestClassifier link1 400.model', classifier_data, False)
+    # classifier_predict_and_judge_effect(classifier, classifier_data)
 
 
 if __name__ == '__main__':

@@ -1,6 +1,6 @@
-pretrained_model = "D:/ML/transformer/bert-base-chinese"
-test_data_path = "D:/ML/transformer/test_dataset.tsv"
-train_data_path = "D:/ML/transformer/train_dataset_v2.tsv"
+pretrained_model = "../bert-base-chinese"
+test_data_path = "../test_dataset.tsv"
+train_data_path = "../train_dataset_v2.tsv"
 
 
 def build_submit_path(name: str):
