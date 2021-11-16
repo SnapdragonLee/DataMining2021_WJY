@@ -34,7 +34,7 @@ def build_train_data():
         y.append(emotions[i])
     print('build data')
 
-    classifier_y = get_classifier_data(emotions)
+    classifier_y = get_classifier_data(y)
     encoder = LabelEncoder()
     encoder = encoder.fit(classifier_y)
     classifier_y = encoder.transform(classifier_y)
