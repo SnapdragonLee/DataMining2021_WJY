@@ -115,7 +115,7 @@ def train_and_save_classifier(model_name: str, pre_treated_dataset, have_fit=Tru
             classifier = pickle.load(r_f_c)
         print('load classifier model')
         return classifier
-    classifier = RandomForestClassifier(n_estimators=300)
+    classifier = RandomForestClassifier(n_estimators=200)
     y, x = pre_treated_dataset
     l = int(len(y) * (1 - const_val.VERIFICATION_PERCENT / 100))
     y_train = y[:l]
@@ -135,11 +135,17 @@ def classifier_predict_and_judge_effect(classifier: RandomForestClassifier, pre_
     x_test = x[l:]
     y_pred = classifier.predict(X=x_test)
     wrong = []
+    zero_wrong = 0
     for i in range(len(y_pred)):
         if y_pred[i] != y_test[i]:
-            wrong.append([y_pred[i], y_test[i]])
+            if y_test[i] != 0:
+                wrong.append((y_pred[i], y_test[i]))
+            else:
+                zero_wrong += 1
 
-    print('Classifier accuracy: {0}\t'.format(1 - len(wrong) / len(y_pred)))
+    print('Classifier accuracy:\n Tradition: {0} \n No Effect {1}'.format(1 - (len(wrong) + zero_wrong) / len(y_pred),
+                                                                          1 - len(wrong) / len(y_pred)))
+    print('Zero Wrong: {0}'.format(zero_wrong))
     wrong = tuple(wrong)
     counter = Counter(wrong)
     print('***************************')
@@ -163,12 +169,12 @@ def get_test_data(dataset):
 
 def main():
     # 读取数据
-    y, x, classifier_y, label_encoder = read_data_encoded('pretreatedDataset.pretreatedData', True)
+    y, x, classifier_y, label_encoder = read_data_encoded('pretreatedDataset WithOutLink.pretreatedData', False)
     regressor_data = y, x
     classifier_data = classifier_y, x
     # regressor = train_and_save_regressor('randomForestRegressor link1 400.model', regressor_data, False)
     # regressor_predict_and_judge_effect(regressor, regressor_data)
-    classifier = train_and_save_classifier('randomForestClassifier link1 300.model', classifier_data, False)
+    classifier = train_and_save_classifier('randomForestClassifier without link 200.model', classifier_data, False)
     classifier_predict_and_judge_effect(classifier, classifier_data)
 
 

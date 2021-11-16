@@ -28,8 +28,8 @@ def build_train_data():
     merged_sentences = dic['merged_sentences']
     emotions = dic['emotions']
     for i in range(len(emotions)):
-        x.append(link_content_merged[i])
-        y.append(emotions[i])
+        # x.append(link_content_merged[i])
+        # y.append(emotions[i])
         x.append(merged_sentences[i])
         y.append(emotions[i])
     print('build data')
