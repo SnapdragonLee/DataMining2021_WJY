@@ -97,10 +97,10 @@ def read_data_encoded(dataset_name: str, have_encode=True):
         del encoder
         x = np.array(x)
         y = np.array(y)
-        classifier_y = np.array(classifier_y).T
+        classifier_y = np.array(classifier_y)
+        classifier_y = classifier_y.reshape([classifier_y.shape[0], 1])
         # 随机处理
-        hstack = np.hstack((x, y))
-        hstack = np.hstack((hstack, classifier_y))
+        hstack = np.hstack((x, y,classifier_y))
         np.random.shuffle(hstack)
         y = hstack[:, -7:-1]
         x = hstack[:, :-7]
@@ -166,13 +166,13 @@ def get_test_data(dataset):
 
 def main():
     # 读取数据
-    y, x, classifier_y, label_encoder = read_data_encoded('pretreatedDataset.pretreatedData', True)
+    y, x, classifier_y, label_encoder = read_data_encoded('pretreatedDataset.pretreatedData', False)
     regressor_data = y, x
     classifier_data = classifier_y, x
-    regressor = train_and_save_regressor('randomForestRegressor link1 400.model', regressor_data, False)
-    regressor_predict_and_judge_effect(regressor, regressor_data)
-    # classifier = train_and_save_classifier('randomForestClassifier link1 400.model', classifier_data, False)
-    # classifier_predict_and_judge_effect(classifier, classifier_data)
+    # regressor = train_and_save_regressor('randomForestRegressor link1 400.model', regressor_data, False)
+    # regressor_predict_and_judge_effect(regressor, regressor_data)
+    classifier = train_and_save_classifier('randomForestClassifier link1 400.model', classifier_data, False)
+    classifier_predict_and_judge_effect(classifier, classifier_data)
 
 
 if __name__ == '__main__':
