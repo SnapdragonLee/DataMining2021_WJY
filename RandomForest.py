@@ -101,13 +101,13 @@ def read_data_encoded(dataset_name: str, have_encode=True):
         # 随机处理
         hstack = np.hstack((x, y))
         hstack = np.hstack((hstack, classifier_y))
-        # TODO 完成随机后分割
         np.random.shuffle(hstack)
-        y = hstack[:, -6:]
-        x = hstack[:, :-6]
+        y = hstack[:, -7:-1]
+        x = hstack[:, :-7]
+        classifier_y = hstack[:, -1]
 
         print('bert encoding finish and shuffle')
-        pre_treated_dataset = y, x
+        pre_treated_dataset = y, x, classifier_y, label_encoder
         with open(path.build_tmp_data_path(dataset_name), 'wb') as p_t_d_f:
             pickle.dump(pre_treated_dataset, p_t_d_f)
         print('bert encoding finish and saved')
@@ -121,12 +121,14 @@ def train_and_save_classifier(model_name: str, pre_treated_dataset, have_fit=Tru
             classifier = pickle.load(r_f_c)
         print('load classifier model')
         return classifier
-    classifier = RandomForestClassifier()
+    classifier = RandomForestClassifier(n_estimators=400)
     y, x = pre_treated_dataset
     l = int(len(y) * (1 - const_val.VERIFICATION_PERCENT / 100))
     y_train = y[:l]
     x_train = x[:l]
+    print('begin fit classifier')
     classifier.fit(X=x_train, y=y_train)
+    print('fit classifier finish')
     return classifier
 
 
@@ -150,8 +152,13 @@ def classifier_predict_and_judge_effect(classifier: RandomForestClassifier, pre_
 
 def main():
     # 读取数据
-    y, x, classifier_y, label_encoder = input.build_train_data()
+    y, x, classifier_y, label_encoder = read_data_encoded('pretreatedDataset.pretreatedData', False)
+    regressor_data = y, x
+    classifier_data = classifier_y, x
+    # regressor = train_and_save_regressor('randomForestRegressor link1 400.model', regressor_data, False)
+    classifier = train_and_save_classifier('randomForestClassifier link1 400', classifier_data, False)
+    classifier_predict_and_judge_effect(classifier, classifier_data)
 
 
 if __name__ == '__main__':
-    pass
+    main()
