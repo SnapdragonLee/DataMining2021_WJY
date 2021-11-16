@@ -5,6 +5,7 @@ RandomForestRegressor.model
 *.csv
 *.tsv
 *.model
+*.pretreatedData
 test_dataset_bert_encode.txt
 path.py
 testfile.py
