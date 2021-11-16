@@ -94,7 +94,7 @@ def read_data_encoded(dataset_name: str, have_encode=True):
         classifier_y = np.array(classifier_y)
         classifier_y = classifier_y.reshape([classifier_y.shape[0], 1])
         # 随机处理
-        hstack = np.hstack((x, y,classifier_y))
+        hstack = np.hstack((x, y, classifier_y))
         np.random.shuffle(hstack)
         y = hstack[:, -7:-1]
         x = hstack[:, :-7]
@@ -122,6 +122,8 @@ def train_and_save_classifier(model_name: str, pre_treated_dataset, have_fit=Tru
     x_train = x[:l]
     print('begin fit classifier')
     classifier.fit(X=x_train, y=y_train)
+    with open(path.build_model_path(model_name), 'wb') as r_f_c:
+        pickle.dump(classifier, r_f_c)
     print('fit classifier finish')
     return classifier
 
@@ -137,7 +139,7 @@ def classifier_predict_and_judge_effect(classifier: RandomForestClassifier, pre_
         if y_pred[i] != y_test[i]:
             wrong.append([y_pred[i], y_test[i]])
 
-    print('Classifier accuracy:\t'.format(len(wrong) / len(y_pred)))
+    print('Classifier accuracy: {0}\t'.format(len(wrong) / len(y_pred)))
     counter = Counter(wrong)
     print('***************************')
     print(counter)
@@ -160,7 +162,7 @@ def get_test_data(dataset):
 
 def main():
     # 读取数据
-    y, x, classifier_y, label_encoder = read_data_encoded('pretreatedDataset.pretreatedData', False)
+    y, x, classifier_y, label_encoder = read_data_encoded('pretreatedDataset.pretreatedData', True)
     regressor_data = y, x
     classifier_data = classifier_y, x
     # regressor = train_and_save_regressor('randomForestRegressor link1 400.model', regressor_data, False)
