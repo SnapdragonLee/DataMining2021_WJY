@@ -1,4 +1,5 @@
-pretrained_model = "../bert-base-chinese"
+pretrained_model1 = "../bert-base-chinese"
+pretrained_model2 = '../'
 test_data_path = "../test_dataset.tsv"
 train_data_path = "../train_dataset_v2.tsv"
 
