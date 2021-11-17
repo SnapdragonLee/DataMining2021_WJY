@@ -205,7 +205,8 @@ class IQIYModelLite(nn.Module):
         )
 
         init_params([self.out_love, self.out_joy, self.out_fright, self.out_anger,
-                     self.out_fear, self.out_sorrow, self.attention])
+                     self.out_fear, self.out_sorrow, self.attention_love, self.attention_joy, self.attention_fright,
+                     self.attention_anger, self.attention_fear, self.attention_sorrow])
 
     def forward(self, input_ids, attention_mask):
         roberta_output = self.base(input_ids=input_ids,
