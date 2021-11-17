@@ -116,7 +116,7 @@ def create_dataloader(dataset, batch_size, mode='train'):
 
 # 加载预训练模型
 # roberta
-PRE_TRAINED_MODEL_NAME = 'hfl/chinese-roberta-wwm-ext'  # 'hfl/chinese-roberta-wwm-ext'
+PRE_TRAINED_MODEL_NAME = path.get_pretrain_model_path(1)  # 'hfl/chinese-roberta-wwm-ext'
 tokenizer = BertTokenizer.from_pretrained(PRE_TRAINED_MODEL_NAME)
 base_model = BertModel.from_pretrained(PRE_TRAINED_MODEL_NAME)  # 加载预训练模型
 
