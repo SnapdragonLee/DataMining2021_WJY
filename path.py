@@ -1,6 +1,6 @@
 import os
 
-pretrained_model = ("bert-base-chinese", "chinese-roberta-wwm-ext")
+pretrained_model = ("bert-base-chinese", "chinese-roberta-wwm-ext", "chinese_simbert_L-12_H-768_A-12")
 origin_test_data_name = "test_dataset.tsv"
 origin_train_data_name = "train_dataset_v2.tsv"
 
