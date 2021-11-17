@@ -149,7 +149,7 @@ class IQIYModelLite(nn.Module):
             nn.Linear(dim, 512),
             nn.Tanh(),
             nn.Linear(512, 1),
-            nn.Softmax(dim=1)
+            nn.PReLU()
         )
         # self.attention = AttentionHead(h_size=dim, hidden_dim=512, w_drop=0.0, v_drop=0.0)
 
@@ -199,15 +199,15 @@ class IQIYModelLite(nn.Module):
 
 
 # 参数配置
-EPOCHS = 2
+EPOCHS = 3
 weight_decay = 0.0
 data_path = 'data'
 warmup_proportion = 0.0
-batch_size = 16
+batch_size = 32
 lr = 1e-5
-max_len = 128
+max_len = 256
 
-warm_up_ratio = 0
+warm_up_ratio = 0.001
 
 trainset = RoleDataset(tokenizer, max_len, mode='train')
 train_loader = create_dataloader(trainset, batch_size, mode='train')
@@ -231,7 +231,7 @@ scheduler = get_linear_schedule_with_warmup(
     num_training_steps=total_steps
 )
 
-criterion = nn.BCEWithLogitsLoss().cuda()
+criterion = nn.MSELoss().cuda()
 
 
 # 模型训练
