@@ -116,9 +116,10 @@ def create_dataloader(dataset, batch_size, mode='train'):
 
 # 加载预训练模型
 # roberta
-PRE_TRAINED_MODEL_NAME = path.get_pretrain_model_path(1)  # 'hfl/chinese-roberta-wwm-ext'
-tokenizer = BertTokenizer.from_pretrained(PRE_TRAINED_MODEL_NAME)
-base_model = BertModel.from_pretrained(PRE_TRAINED_MODEL_NAME)  # 加载预训练模型
+PRE_TRAINED_MODEL_NAME = path.pretrained_model[1]
+PRE_TRAINED_MODEL_PATH = path.get_pretrain_model_path(1)  # 'hfl/chinese-roberta-wwm-ext'
+tokenizer = BertTokenizer.from_pretrained(PRE_TRAINED_MODEL_PATH)
+base_model = BertModel.from_pretrained(PRE_TRAINED_MODEL_PATH)  # 加载预训练模型
 
 
 # model = ppnlp.transformers.BertForSequenceClassification.from_pretrained(MODEL_NAME, num_classes=2)
@@ -133,14 +134,14 @@ def init_params(module_lst):
 
 
 class IQIYModelLite(nn.Module):
-    def __init__(self, n_classes, model_name):
+    def __init__(self, n_classes, model_name, model_path):
         super(IQIYModelLite, self).__init__()
-        config = AutoConfig.from_pretrained(model_name)
+        config = AutoConfig.from_pretrained(model_path)
         config.update({"output_hidden_states": True,
                        "hidden_dropout_prob": 0.0,
                        "layer_norm_eps": 1e-7})
 
-        self.base = BertModel.from_pretrained(model_name, config=config)
+        self.base = BertModel.from_pretrained(model_path, config=config)
 
         dim = 1024 if 'large' in model_name else 768
 
@@ -214,7 +215,7 @@ train_loader = create_dataloader(trainset, batch_size, mode='train')
 valset = RoleDataset(tokenizer, max_len, mode='test')
 valid_loader = create_dataloader(valset, batch_size, mode='test')
 
-model = IQIYModelLite(n_classes=1, model_name=PRE_TRAINED_MODEL_NAME)
+model = IQIYModelLite(n_classes=1, model_name=PRE_TRAINED_MODEL_NAME, model_path=PRE_TRAINED_MODEL_PATH)
 
 model.cuda()
 
@@ -310,7 +311,7 @@ def predict(model, test_loader):
     return test_pred
 
 
-submit = pd.read_csv('data/submit_example.tsv', sep='\t')
+submit = pd.read_csv(path.get_dataset_path('submit_example.tsv'), sep='\t')
 test_pred = predict(model, valid_loader)
 
 print(test_pred['love'][:10])
@@ -324,5 +325,6 @@ print(len(label_preds[0]))
 sub = submit.copy()
 sub['emotion'] = np.stack(label_preds, axis=1).tolist()
 sub['emotion'] = sub['emotion'].apply(lambda x: ','.join([str(i) for i in x]))
-sub.to_csv('baseline_{}.tsv'.format(PRE_TRAINED_MODEL_NAME.split('/')[-1]), sep='\t', index=False)
+sub.to_csv(path.build_submit_path('baseline_{}.tsv').format(PRE_TRAINED_MODEL_NAME.split('/')[-1]), sep='\t',
+           index=False)
 sub.head()
