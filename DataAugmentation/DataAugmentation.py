@@ -32,23 +32,18 @@ def build_sentence(origin: str, nums: int):
     }
     simbert = Simbert(config=config)
     sent = origin
-    synonyms = simbert.replace(sent=sent, create_num=3)
+
+    '''
+        如果要使用这个步骤，那么需要用足够大的内存和足够的算例，假如内存无限大，我需要184h左右的时间算完所有相似据3生成，这是一个相当大的时间开销
+        因此不建议使用这个，这里我先放一个暂时可以跑的，也没准自己的代码有问题。
+        但是这么看起来没有选择的情况下时间开销已经很大，所以看起来也没什么可以改的，很无奈，而且当句子词汇过大的时候，生成的同义句子会有很大的语义损失
+    '''
+
+    synonyms = simbert.replace(sent=sent, create_num=3) # 暂且定义为 3 (若定义为5，自己的电脑实在无法支撑这么大的运算)
 
     temp = [synonyms[0][0], synonyms[1][0]]
     return temp
 
-
-"""def demo():
-    config = {
-        'model_path': path.get_pretrain_model_path(2),
-        'CUDA_VISIBLE_DEVICES': '',
-        'max_len': 200,
-        'seed': 1
-    }
-    simbert = Simbert(config=config)
-    sent = '把我的一个亿存银行安全吗'
-    synonyms = simbert.replace(sent=sent, create_num=5)
-    print(synonyms)"""
 
 if __name__ == '__main__':
     augment_data()
