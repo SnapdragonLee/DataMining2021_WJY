@@ -20,7 +20,7 @@ def augment_data():
             for j in tqdm(range(len(contents)), desc='train data augment{0}'.format(i)):
                 tar.write(
                     "{0}\t{1}\t{2}\t{3}\n".format(data_set['OId'][j], new_contents[i][j], data_set['characters'][j],
-                                                  str(data_set['emotions'][j]).[1, -1]))
+                                                  str(data_set['emotions'][j])[1:-1]))
 
 
 def build_sentence(origin: str, nums: int):
