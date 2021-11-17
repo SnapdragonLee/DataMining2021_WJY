@@ -7,7 +7,7 @@ import seaborn as env
 from sklearn.preprocessing import LabelEncoder
 
 import path
-import const_val as c_v
+from BERT_Random_Forest import const_val as c_v
 
 """
     pip install seaborn
@@ -48,7 +48,7 @@ def get_data(is_train_data=True):
             调用时可用 merged_sentences中的句子 句子形式 content + '[MASK]角色' + character
             新增 key ‘link_content’ 向前拼接的句子 'link_content_merged' 句子增加角色名
     """
-    data_path = path.train_data_path if is_train_data else path.test_data_path
+    data_path = path.get_origin_train_data_path() if is_train_data else path.get_origin_train_data_path(False)
     data, table = read_data(data_path, is_train_data)
     if is_train_data:
         data = delete_empty_data(data)
@@ -77,6 +77,7 @@ def read_data(file_path, is_train_data=True):
     contents = []
     characters = []
     emotions = []
+    origin_ids = []
     index = 0
     with open(file_path, 'r', encoding='utf-8') as f:
         for line in f.readlines():
@@ -93,6 +94,7 @@ def read_data(file_path, is_train_data=True):
                     id = (int(script_id), int(scene_num), int(sentence_num))
                 else:
                     id = (origin_id, int(script_id), int(scene_num), int(sentence_num))
+                origin_ids.append(origin_id)
                 script_ids.append(script_id)
                 scene_nums.append(scene_num)
                 sentence_nums.append(sentence_num)
@@ -107,7 +109,8 @@ def read_data(file_path, is_train_data=True):
         content_dic[ids[i]] = contents[i]
 
     if is_train_data:
-        return {'ids': ids, 'contents': contents, 'characters': characters, 'emotions': emotions}, content_dic
+        return {'ids': ids, 'contents': contents, 'characters': characters, 'emotions': emotions,
+                'OId': origin_ids}, content_dic
     else:
         return {'ids': ids, 'contents': contents, 'characters': characters}, content_dic
 
@@ -335,4 +338,4 @@ def main():
 
 
 if __name__ == '__main__':
-    print(path.get_origin_train_data_path())
+    print(c_v.MAX_SIZE_OF_CONTENT)
