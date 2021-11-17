@@ -83,7 +83,7 @@ class BertEncoder:
 
 
 def main():
-    pretrained_model = path.pretrained_model
+    pretrained_model = path.get_pretrain_model_path(0)
     st = ["这是一个[MASK]测试语句", "这是一个测试语句", "这是一个苹果[MASK]", "这是一个苹果", "我爱[MASK]吃苹果", "我爱吃苹果"]
     bert_encoder1 = BertEncoder(pretrained_model)
     bert_encoder1.chinese2encode_bert(st)

@@ -52,7 +52,7 @@ def predict():
 
 def train_and_save_regressor(model_name: str, pre_treated_dataset, have_fit=True):
     if have_fit:
-        with open(path.build_model_path(model_name), 'rb') as r_f_r:
+        with open(path.build_random_forest_model_path(model_name), 'rb') as r_f_r:
             regressor = pickle.load(r_f_r)
         print('load model')
         return regressor
@@ -64,7 +64,7 @@ def train_and_save_regressor(model_name: str, pre_treated_dataset, have_fit=True
     regressor = RandomForestRegressor(n_estimators=400)
     regressor.fit(X=x_train, y=y_train)
 
-    with open(path.build_model_path(path.build_model_path(model_name)), 'wb') as r_f_r:
+    with open(path.build_random_forest_model_path(path.build_model_path(model_name)), 'wb') as r_f_r:
         pickle.dump(regressor, r_f_r)
 
     print('RandomForest fit and save')
@@ -86,7 +86,7 @@ def read_data_encoded(dataset_name: str, have_encode=True):
         print("load data encoded")
     else:
         y, x, classifier_y, label_encoder = input.build_train_data()
-        encoder = BertEncoder(path.pretrained_model)
+        encoder = BertEncoder(path.get_pretrain_model_path(0))
         x = encoder.chinese2encode_bert(x)
         del encoder
         x = np.array(x)
@@ -111,7 +111,7 @@ def read_data_encoded(dataset_name: str, have_encode=True):
 
 def train_and_save_classifier(model_name: str, pre_treated_dataset, have_fit=True):
     if have_fit:
-        with open(path.build_model_path(model_name), 'rb') as r_f_c:
+        with open(path.build_random_forest_model_path(model_name), 'rb') as r_f_c:
             classifier = pickle.load(r_f_c)
         print('load classifier model')
         return classifier
@@ -122,7 +122,7 @@ def train_and_save_classifier(model_name: str, pre_treated_dataset, have_fit=Tru
     x_train = x[:l]
     print('begin fit classifier')
     classifier.fit(X=x_train, y=y_train)
-    with open(path.build_model_path(model_name), 'wb') as r_f_c:
+    with open(path.build_random_forest_model_path(model_name), 'wb') as r_f_c:
         pickle.dump(classifier, r_f_c)
     print('fit classifier finish')
     return classifier

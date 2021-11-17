@@ -21,9 +21,11 @@ import os
 # os.environ["CUDA_VISIBLE_DEVICES"] = '3'
 
 # 加载数据
-with open('data/train_dataset_v2.tsv', 'r', encoding='utf-8') as handler:
+import path
+
+with open(path.get_dataset_path('train_dataset_v2.tsv'), 'r', encoding='utf-8') as handler:
     lines = handler.read().split('\n')[1:-1]
-    # 第一句最后一句不要？
+    # 第一句为标签    最后一句为空行
 
     data = list()
     for line in tqdm(lines):
@@ -36,8 +38,8 @@ with open('data/train_dataset_v2.tsv', 'r', encoding='utf-8') as handler:
 train = pd.DataFrame(data)
 train.columns = ['id', 'content', 'character', 'emotions']
 
-test = pd.read_csv('data/test_dataset.tsv', sep='\t')
-submit = pd.read_csv('data/submit_example.tsv', sep='\t')
+test = pd.read_csv(path.get_dataset_path('test_dataset.tsv'), sep='\t')
+submit = pd.read_csv(path.get_dataset_path('submit_example.tsv'), sep='\t')
 train = train[train['emotions'] != '']
 
 # 数据处理
@@ -49,12 +51,12 @@ train['emotions'] = train['emotions'].apply(lambda x: [int(_i) for _i in x.split
 train[['love', 'joy', 'fright', 'anger', 'fear', 'sorrow']] = train['emotions'].values.tolist()
 test[['love', 'joy', 'fright', 'anger', 'fear', 'sorrow']] = [0, 0, 0, 0, 0, 0]
 
-train.to_csv('data/train.csv',
+train.to_csv(path.get_dataset_path('train.csv'),
              columns=['id', 'content', 'character', 'text', 'love', 'joy', 'fright', 'anger', 'fear', 'sorrow'],
              sep='\t',
              index=False)
 
-test.to_csv('data/test.csv',
+test.to_csv(path.get_dataset_path('test.csv'),
             columns=['id', 'content', 'character', 'text', 'love', 'joy', 'fright', 'anger', 'fear', 'sorrow'],
             sep='\t',
             index=False)
@@ -67,9 +69,9 @@ class RoleDataset(Dataset):
     def __init__(self, tokenizer, max_len, mode='train'):
         super(RoleDataset, self).__init__()
         if mode == 'train':
-            self.data = pd.read_csv('data/train.csv', sep='\t')
+            self.data = pd.read_csv(path.get_dataset_path('train.csv'), sep='\t')
         else:
-            self.data = pd.read_csv('data/test.csv', sep='\t')
+            self.data = pd.read_csv(path.get_dataset_path('test.csv'), sep='\t')
         self.texts = self.data['text'].tolist()
         self.labels = self.data[target_cols].to_dict('records')
         self.tokenizer = tokenizer

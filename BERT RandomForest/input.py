@@ -335,5 +335,4 @@ def main():
 
 
 if __name__ == '__main__':
-    pass
-    main()
+    print(path.get_origin_train_data_path())
