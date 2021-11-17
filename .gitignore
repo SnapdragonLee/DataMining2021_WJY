@@ -1,4 +1,5 @@
 # personal
+*.zip
 dataset/
 bert-base-chinese/
 chinese_simbert_L-12_H-768_A-12/

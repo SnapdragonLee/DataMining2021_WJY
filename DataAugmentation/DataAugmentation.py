@@ -1,4 +1,4 @@
-# from nlpcda import Simbert
+from nlpcda import Simbert
 from tqdm import tqdm
 
 import BERT_Random_Forest
@@ -24,8 +24,18 @@ def augment_data():
 
 
 def build_sentence(origin: str, nums: int):
-    pass
-    return ['test'] * 2
+    config = {
+        'model_path': path.get_pretrain_model_path(2),
+        'CUDA_VISIBLE_DEVICES': 'cuda',
+        'max_len': 200,
+        'seed': 1
+    }
+    simbert = Simbert(config=config)
+    sent = origin
+    synonyms = simbert.replace(sent=sent, create_num=3)
+
+    temp = [synonyms[0][0], synonyms[1][0]]
+    return temp
 
 
 """def demo():

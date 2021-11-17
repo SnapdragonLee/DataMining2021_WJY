@@ -3,7 +3,6 @@ import copy
 import matplotlib.pyplot as plt
 from collections import Counter
 import pandas as pd
-import seaborn as env
 from sklearn.preprocessing import LabelEncoder
 
 import path
