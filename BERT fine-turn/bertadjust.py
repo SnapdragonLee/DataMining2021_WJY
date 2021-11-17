@@ -199,15 +199,15 @@ class IQIYModelLite(nn.Module):
 
 
 # 参数配置
-EPOCHS = 3
+EPOCHS = 2
 weight_decay = 0.0
 data_path = 'data'
 warmup_proportion = 0.0
-batch_size = 32
+batch_size = 16
 lr = 1e-5
-max_len = 256
+max_len = 128
 
-warm_up_ratio = 0.001
+warm_up_ratio = 0.000
 
 trainset = RoleDataset(tokenizer, max_len, mode='train')
 train_loader = create_dataloader(trainset, batch_size, mode='train')
@@ -325,6 +325,6 @@ print(len(label_preds[0]))
 sub = submit.copy()
 sub['emotion'] = np.stack(label_preds, axis=1).tolist()
 sub['emotion'] = sub['emotion'].apply(lambda x: ','.join([str(i) for i in x]))
-sub.to_csv(path.build_submit_path('baseline_{}.tsv').format(PRE_TRAINED_MODEL_NAME.split('/')[-1]), sep='\t',
+sub.to_csv(path.build_submit_path('baseline_{} EPOCH2 BATCH_SIZE16 MSE.tsv').format(PRE_TRAINED_MODEL_NAME.split('/')[-1]), sep='\t',
            index=False)
 sub.head()
