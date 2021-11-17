@@ -372,7 +372,7 @@ sub = submit.copy()
 sub['emotion'] = np.stack(label_preds, axis=1).tolist()
 sub['emotion'] = sub['emotion'].apply(lambda x: ','.join([str(i) for i in x]))
 sub.to_csv(
-    path.build_submit_path('baseline_{} EPOCH2 BATCH_SIZE16 MSE.tsv').format(PRE_TRAINED_MODEL_NAME.split('/')[-1]),
+    path.build_submit_path('baseline_{} 6 Attention.tsv').format(PRE_TRAINED_MODEL_NAME.split('/')[-1]),
     sep='\t',
     index=False)
 sub.head()
