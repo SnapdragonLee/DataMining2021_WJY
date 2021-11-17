@@ -145,11 +145,43 @@ class IQIYModelLite(nn.Module):
 
         dim = 1024 if 'large' in model_name else 768
 
-        self.attention = nn.Sequential(
+        self.attention_love = nn.Sequential(
             nn.Linear(dim, 512),
             nn.Tanh(),
             nn.Linear(512, 1),
-            nn.PReLU()
+            nn.Softmax(dim=1)
+        )
+        self.attention_joy = nn.Sequential(
+            nn.Linear(dim, 512),
+            nn.Tanh(),
+            nn.Linear(512, 1),
+            nn.Softmax(dim=1)
+        )
+        self.attention_fright = nn.Sequential(
+            nn.Linear(dim, 512),
+            nn.Tanh(),
+            nn.Linear(512, 1),
+            nn.Softmax(dim=1)
+        )
+        self.attention_anger = nn.Sequential(
+            nn.Linear(dim, 512),
+            nn.Tanh(),
+            nn.Linear(512, 1),
+            nn.Softmax(dim=1)
+        )
+
+        self.attention_fear = nn.Sequential(
+            nn.Linear(dim, 512),
+            nn.Tanh(),
+            nn.Linear(512, 1),
+            nn.Softmax(dim=1)
+        )
+
+        self.attention_sorrow = nn.Sequential(
+            nn.Linear(dim, 512),
+            nn.Tanh(),
+            nn.Linear(512, 1),
+            nn.Softmax(dim=1)
         )
         # self.attention = AttentionHead(h_size=dim, hidden_dim=512, w_drop=0.0, v_drop=0.0)
 
@@ -180,17 +212,31 @@ class IQIYModelLite(nn.Module):
                                    attention_mask=attention_mask)
 
         last_layer_hidden_states = roberta_output.hidden_states[-1]
-        weights = self.attention(last_layer_hidden_states)
-        # print(weights.size())
-        context_vector = torch.sum(weights * last_layer_hidden_states, dim=1)
-        # context_vector = weights
 
-        love = self.out_love(context_vector)
-        joy = self.out_joy(context_vector)
-        fright = self.out_fright(context_vector)
-        anger = self.out_anger(context_vector)
-        fear = self.out_fear(context_vector)
-        sorrow = self.out_sorrow(context_vector)
+        weights_love = self.attention_love(last_layer_hidden_states)
+        context_vector_love = torch.sum(weights_love * last_layer_hidden_states, dim=1)
+
+        weights_joy = self.attention_joy(last_layer_hidden_states)
+        context_vector_joy = torch.sum(weights_joy * last_layer_hidden_states, dim=1)
+
+        weights_fright = self.attention_fright(last_layer_hidden_states)
+        context_vector_fright = torch.sum(weights_fright * last_layer_hidden_states, dim=1)
+
+        weights_anger = self.attention_anger(last_layer_hidden_states)
+        context_vector_anger = torch.sum(weights_anger * last_layer_hidden_states, dim=1)
+
+        weights_fear = self.attention_fear(last_layer_hidden_states)
+        context_vector_fear = torch.sum(weights_fear * last_layer_hidden_states, dim=1)
+
+        weights_sorrow = self.attention_sorrow(last_layer_hidden_states)
+        context_vector_sorrow = torch.sum(weights_sorrow * last_layer_hidden_states, dim=1)
+
+        love = self.out_love(context_vector_love)
+        joy = self.out_joy(context_vector_joy)
+        fright = self.out_fright(context_vector_fright)
+        anger = self.out_anger(context_vector_anger)
+        fear = self.out_fear(context_vector_fear)
+        sorrow = self.out_sorrow(context_vector_sorrow)
 
         return {
             'love': love, 'joy': joy, 'fright': fright,
@@ -231,7 +277,7 @@ scheduler = get_linear_schedule_with_warmup(
     num_training_steps=total_steps
 )
 
-criterion = nn.MSELoss().cuda()
+criterion = nn.BCEWithLogitsLoss().cuda()
 
 
 # 模型训练
@@ -325,6 +371,8 @@ print(len(label_preds[0]))
 sub = submit.copy()
 sub['emotion'] = np.stack(label_preds, axis=1).tolist()
 sub['emotion'] = sub['emotion'].apply(lambda x: ','.join([str(i) for i in x]))
-sub.to_csv(path.build_submit_path('baseline_{} EPOCH2 BATCH_SIZE16 MSE.tsv').format(PRE_TRAINED_MODEL_NAME.split('/')[-1]), sep='\t',
-           index=False)
+sub.to_csv(
+    path.build_submit_path('baseline_{} EPOCH2 BATCH_SIZE16 MSE.tsv').format(PRE_TRAINED_MODEL_NAME.split('/')[-1]),
+    sep='\t',
+    index=False)
 sub.head()
