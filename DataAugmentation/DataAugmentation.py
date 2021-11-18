@@ -1,7 +1,7 @@
 # from nlpcda import Simbert
 import os
 
-from nlpcda import Similarword
+from nlpcda import Similarword, RandomDeleteChar
 from tqdm import tqdm
 from googletrans import Translator
 import BERT_Random_Forest
@@ -22,13 +22,14 @@ def augment_data():
     }
     simbert = Simbert(config=config)"""
     for content in tqdm(contents):
-        single_new_contents = similar_word(content, NEW_CONTENT_NUM)
+        single_new_contents = del_word(content, NEW_CONTENT_NUM)
 
         for i in range(NEW_CONTENT_NUM):
             new_contents[i].append(single_new_contents[i])
 
     for i in range(NEW_CONTENT_NUM):
-        with open(path.get_dataset_path('train_data_augment{0}.txt'.format(i)), 'w',encoding='utf-8') as tar:
+        with open(path.get_dataset_path('train_data_augment_del_word{0}.txt'.format(i)), 'w',
+                  encoding='utf-8') as tar:
             for j in tqdm(range(len(contents)), desc='train data augment {0}'.format(i)):
                 tar.write(
                     "{0}\t{1}\t{2}\t{3}\n".format(data_set['OId'][j], new_contents[i][j], data_set['characters'][j],
@@ -40,6 +41,23 @@ smw = Similarword(create_num=5, change_rate=0.4)
 
 def similar_word(origin: str, nums: int):
     rs1 = smw.replace(origin)
+
+    ans = []
+    for rs in rs1:
+        if rs != origin:
+            ans.append(rs)
+    if len(ans) == 0:
+        ans = rs1
+    if len(ans) < nums:
+        ans = ans * 5
+    return ans[:nums]
+
+
+rdc = RandomDeleteChar(create_num=5, change_rate=0.3)
+
+
+def del_word(origin: str, nums: int):
+    rs1 = rdc.replace(origin)
 
     ans = []
     for rs in rs1:
