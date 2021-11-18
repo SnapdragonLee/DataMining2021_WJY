@@ -261,7 +261,7 @@ def do_train(model, criterion, optimizer, scheduler, metric=None, K=5):
         k_test_dataframe = pd.DataFrame()
         for _ in range(K):
             if _ != k:
-                k_train_dataframe = pd.concat(k_train_dataframe, train_dataframe_section[_])
+                k_train_dataframe = pd.concat([k_train_dataframe, train_dataframe_section[_]])
             else:
                 k_test_dataframe = train_dataframe_section[_]
         k_train_set = RoleDataset(tokenizer, max_len, k_train_dataframe, mode='train')
