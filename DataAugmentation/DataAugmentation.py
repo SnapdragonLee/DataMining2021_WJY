@@ -11,8 +11,15 @@ def augment_data():
     data_set = input.get_data()
     contents = data_set['contents']
     new_contents = [[]] * NEW_CONTENT_NUM
+    config = {
+        'model_path': path.get_pretrain_model_path(2),
+        'CUDA_VISIBLE_DEVICES': 'cuda',
+        'max_len': 200,
+        'seed': 1
+    }
+    simbert = Simbert(config=config)
     for content in tqdm(contents):
-        single_new_contents = build_sentence(content, NEW_CONTENT_NUM)
+        single_new_contents = build_sentence(content, NEW_CONTENT_NUM, simbert)
         for i in range(NEW_CONTENT_NUM):
             new_contents[i].append(single_new_contents[i])
     for i in range(NEW_CONTENT_NUM):
@@ -23,14 +30,7 @@ def augment_data():
                                                   str(data_set['emotions'][j])[1:-1]))
 
 
-def build_sentence(origin: str, nums: int):
-    config = {
-        'model_path': path.get_pretrain_model_path(2),
-        'CUDA_VISIBLE_DEVICES': 'cuda',
-        'max_len': 200,
-        'seed': 1
-    }
-    simbert = Simbert(config=config)
+def build_sentence(origin: str, nums: int, simbert):
     sent = origin
 
     '''
@@ -39,7 +39,7 @@ def build_sentence(origin: str, nums: int):
         但是这么看起来没有选择的情况下时间开销已经很大，所以看起来也没什么可以改的，很无奈，而且当句子词汇过大的时候，生成的同义句子会有很大的语义损失
     '''
 
-    synonyms = simbert.replace(sent=sent, create_num=3) # 暂且定义为 3 (若定义为5，自己的电脑实在无法支撑这么大的运算)
+    synonyms = simbert.replace(sent=sent, create_num=3)  # 暂且定义为 3 (若定义为5，自己的电脑实在无法支撑这么大的运算)
 
     temp = [synonyms[0][0], synonyms[1][0]]
     return temp
