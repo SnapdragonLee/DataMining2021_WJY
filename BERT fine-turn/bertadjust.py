@@ -76,6 +76,7 @@ train_dataframe = pd.read_csv(path.get_dataset_path('train.csv'), sep='\t')
 train_dataframe = train_dataframe.sample(frac=1, random_state=1)
 train_dataframe_section = []
 train_dataframe_section_size = len(train_dataframe) // K
+
 for _ in range(K):
     train_dataframe_section.append(
         train_dataframe[train_dataframe_section_size * _:train_dataframe_section_size * (_ + 1)])
@@ -86,6 +87,7 @@ class RoleDataset(Dataset):
         super(RoleDataset, self).__init__()
         if mode == 'train':
             self.data = _train_dataframe
+            # print(_train_dataframe['text'])
         else:
             self.data = pd.read_csv(path.get_dataset_path('test.csv'), sep='\t')
         self.texts = self.data['text'].tolist()
@@ -230,21 +232,24 @@ train_loader = create_dataloader(trainset, batch_size, mode='train')
 valset = RoleDataset(tokenizer, max_len, mode='test')
 valid_loader = create_dataloader(valset, batch_size, mode='test')
 
-model = IQIYModelLite(n_classes=1, model_name=PRE_TRAINED_MODEL_NAME, model_path=PRE_TRAINED_MODEL_PATH)
 
-model.cuda()
+def build_model():
+    model = IQIYModelLite(n_classes=1, model_name=PRE_TRAINED_MODEL_NAME, model_path=PRE_TRAINED_MODEL_PATH)
 
-if torch.cuda.device_count() > 1:
-    model = nn.DataParallel(model)
+    model.cuda()
 
-optimizer = AdamW(model.parameters(), lr=lr, weight_decay=weight_decay)  # correct_bias=False,
+    if torch.cuda.device_count() > 1:
+        model = nn.DataParallel(model)
+    optimizer = AdamW(model.parameters(), lr=lr, weight_decay=weight_decay)  # correct_bias=False,
+    scheduler = get_linear_schedule_with_warmup(
+        optimizer,
+        num_warmup_steps=warm_up_ratio * total_steps,
+        num_training_steps=total_steps
+    )
+    return model, optimizer, scheduler
+
+
 total_steps = len(train_loader) * EPOCHS
-
-scheduler = get_linear_schedule_with_warmup(
-    optimizer,
-    num_warmup_steps=warm_up_ratio * total_steps,
-    num_training_steps=total_steps
-)
 
 criterion = nn.BCEWithLogitsLoss().cuda()
 
@@ -267,16 +272,17 @@ def predict(model, test_loader, title=''):
 
 
 # 模型训练
-def do_train(model, criterion, optimizer, scheduler, metric=None, K=5):
+def do_train(criterion, metric=None, K=5):
     best_model = None
     best_performance = 1
     global_step = 0
     tic_train = time.time()
     log_steps = 100
-    model.train()
     for k in range(K):
-        k_model = copy.deepcopy(model)
+        k_model, optimizer, scheduler = build_model()
+        k_model.cuda()
         k_model.train()
+
         k_train_dataframe = pd.DataFrame()
         k_test_dataframe = pd.DataFrame()
         for _ in range(K):
@@ -284,11 +290,14 @@ def do_train(model, criterion, optimizer, scheduler, metric=None, K=5):
                 k_train_dataframe = pd.concat([k_train_dataframe, train_dataframe_section[_]])
             else:
                 k_test_dataframe = train_dataframe_section[_]
+
         k_train_set = RoleDataset(tokenizer, max_len, k_train_dataframe, mode='train')
         k_train_loader = create_dataloader(k_train_set, batch_size, mode='train')
+
         for epoch in range(EPOCHS):
             losses = []
             for step, sample in enumerate(k_train_loader):
+                # print(sample)
                 input_ids = sample["input_ids"].cuda()
                 attention_mask = sample["attention_mask"].cuda()
 
@@ -301,7 +310,7 @@ def do_train(model, criterion, optimizer, scheduler, metric=None, K=5):
                 loss_fear = criterion(outputs['fear'], sample['fear'].view(-1, 1).cuda())
                 loss_sorrow = criterion(outputs['sorrow'], sample['sorrow'].view(-1, 1).cuda())
                 loss = loss_love + loss_joy + loss_fright + loss_anger + loss_fear + loss_sorrow
-
+                # print(loss)
                 losses.append(loss.item())
 
                 loss.backward()
@@ -337,7 +346,7 @@ def do_train(model, criterion, optimizer, scheduler, metric=None, K=5):
     return k_model
 
 
-model = do_train(model, criterion, optimizer, scheduler)
+model = do_train(criterion)
 
 # 模型预测
 
