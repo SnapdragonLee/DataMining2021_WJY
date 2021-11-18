@@ -1,0 +1,1 @@
+Epoch 2 BatchSize 16 MSE PRelu loss:0.18825 result:0.404318

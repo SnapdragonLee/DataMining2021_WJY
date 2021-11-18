@@ -11,7 +11,7 @@ testfile.py
 regressorModel/
 submit file/
 tmpData/
-log/
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
