@@ -1,6 +1,9 @@
-from nlpcda import Simbert
-from tqdm import tqdm
+# from nlpcda import Simbert
+import os
 
+from nlpcda import Similarword
+from tqdm import tqdm
+from googletrans import Translator
 import BERT_Random_Forest
 import path
 from BERT_Random_Forest import input
@@ -10,24 +13,62 @@ def augment_data():
     NEW_CONTENT_NUM = 2
     data_set = input.get_data()
     contents = data_set['contents']
-    new_contents = [[]] * NEW_CONTENT_NUM
-    config = {
+    new_contents = [[] for _ in range(NEW_CONTENT_NUM)]
+    """config = {
         'model_path': path.get_pretrain_model_path(2),
         'CUDA_VISIBLE_DEVICES': 'cuda',
         'max_len': 200,
         'seed': 1
     }
-    simbert = Simbert(config=config)
+    simbert = Simbert(config=config)"""
     for content in tqdm(contents):
-        single_new_contents = build_sentence(content, NEW_CONTENT_NUM, simbert)
+        single_new_contents = similar_word(content, NEW_CONTENT_NUM)
+
         for i in range(NEW_CONTENT_NUM):
             new_contents[i].append(single_new_contents[i])
+
     for i in range(NEW_CONTENT_NUM):
-        with open(path.get_dataset_path('train_data_augment{0}.txt'.format(i)), 'w') as tar:
-            for j in tqdm(range(len(contents)), desc='train data augment{0}'.format(i)):
+        with open(path.get_dataset_path('train_data_augment{0}.txt'.format(i)), 'w',encoding='utf-8') as tar:
+            for j in tqdm(range(len(contents)), desc='train data augment {0}'.format(i)):
                 tar.write(
                     "{0}\t{1}\t{2}\t{3}\n".format(data_set['OId'][j], new_contents[i][j], data_set['characters'][j],
                                                   str(data_set['emotions'][j])[1:-1]))
+
+
+smw = Similarword(create_num=5, change_rate=0.4)
+
+
+def similar_word(origin: str, nums: int):
+    rs1 = smw.replace(origin)
+
+    ans = []
+    for rs in rs1:
+        if rs != origin:
+            ans.append(rs)
+    if len(ans) == 0:
+        ans = rs1
+    if len(ans) < nums:
+        ans = ans * 5
+    return ans[:nums]
+
+
+def google_trans(origin: str, nums: int):
+    trans = Translator()
+    t_from = 'zh-cn'
+    t_to = 'en'
+    times = 0
+    ans = []
+    while True:
+        s = trans.translate(origin, t_to, t_from)
+        s = trans.translate(s, t_from, t_to)
+        if s != origin:
+            print(s)
+            print(origin)
+            ans.append(s)
+            break
+        else:
+            times += 1
+    return ans
 
 
 def build_sentence(origin: str, nums: int, simbert):
