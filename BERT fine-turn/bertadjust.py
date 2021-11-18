@@ -1,3 +1,5 @@
+import copy
+
 from tqdm import tqdm
 import pandas as pd
 import os
@@ -14,7 +16,7 @@ from torch.utils.data.dataset import Dataset
 from transformers import BertPreTrainedModel, BertTokenizer, BertConfig, BertModel, AutoConfig
 from functools import partial
 from transformers import AdamW, get_linear_schedule_with_warmup
-
+from sklearn.metrics import mean_squared_error
 import os
 
 # 本人电脑只有一个GPU 不需要该句
@@ -22,6 +24,9 @@ import os
 
 # 加载数据
 import path
+
+# K折交叉验证
+K = 5
 
 with open(path.get_dataset_path('train_dataset_v2.tsv'), 'r', encoding='utf-8') as handler:
     lines = handler.read().split('\n')[1:-1]
@@ -64,12 +69,21 @@ test.to_csv(path.get_dataset_path('test.csv'),
 # 定义dataset
 target_cols = ['love', 'joy', 'fright', 'anger', 'fear', 'sorrow']
 
+train_dataframe = pd.read_csv(path.get_dataset_path('train.csv'), sep='\t')
+# 乱序
+train_dataframe = train_dataframe.sample(frac=1, random_state=1)
+train_dataframe_section = []
+train_dataframe_section_size = len(train_dataframe) // K
+for _ in range(K):
+    train_dataframe_section.append(
+        train_dataframe[train_dataframe_section_size * _:train_dataframe_section_size * (_ + 1)])
+
 
 class RoleDataset(Dataset):
-    def __init__(self, tokenizer, max_len, mode='train'):
+    def __init__(self, tokenizer, max_len, _train_dataframe=train_dataframe, mode='train'):
         super(RoleDataset, self).__init__()
         if mode == 'train':
-            self.data = pd.read_csv(path.get_dataset_path('train.csv'), sep='\t')
+            self.data = _train_dataframe
         else:
             self.data = pd.read_csv(path.get_dataset_path('test.csv'), sep='\t')
         self.texts = self.data['text'].tolist()
@@ -145,44 +159,13 @@ class IQIYModelLite(nn.Module):
 
         dim = 1024 if 'large' in model_name else 768
 
-        self.attention_love = nn.Sequential(
-            nn.Linear(dim, 512),
-            nn.Tanh(),
-            nn.Linear(512, 1),
-            nn.Softmax(dim=1)
-        )
-        self.attention_joy = nn.Sequential(
-            nn.Linear(dim, 512),
-            nn.Tanh(),
-            nn.Linear(512, 1),
-            nn.Softmax(dim=1)
-        )
-        self.attention_fright = nn.Sequential(
-            nn.Linear(dim, 512),
-            nn.Tanh(),
-            nn.Linear(512, 1),
-            nn.Softmax(dim=1)
-        )
-        self.attention_anger = nn.Sequential(
+        self.attention = nn.Sequential(
             nn.Linear(dim, 512),
             nn.Tanh(),
             nn.Linear(512, 1),
             nn.Softmax(dim=1)
         )
 
-        self.attention_fear = nn.Sequential(
-            nn.Linear(dim, 512),
-            nn.Tanh(),
-            nn.Linear(512, 1),
-            nn.Softmax(dim=1)
-        )
-
-        self.attention_sorrow = nn.Sequential(
-            nn.Linear(dim, 512),
-            nn.Tanh(),
-            nn.Linear(512, 1),
-            nn.Softmax(dim=1)
-        )
         # self.attention = AttentionHead(h_size=dim, hidden_dim=512, w_drop=0.0, v_drop=0.0)
 
         self.out_love = nn.Sequential(
@@ -205,8 +188,7 @@ class IQIYModelLite(nn.Module):
         )
 
         init_params([self.out_love, self.out_joy, self.out_fright, self.out_anger,
-                     self.out_fear, self.out_sorrow, self.attention_love, self.attention_joy, self.attention_fright,
-                     self.attention_anger, self.attention_fear, self.attention_sorrow])
+                     self.out_fear, self.out_sorrow, self.attention])
 
     def forward(self, input_ids, attention_mask):
         roberta_output = self.base(input_ids=input_ids,
@@ -214,30 +196,15 @@ class IQIYModelLite(nn.Module):
 
         last_layer_hidden_states = roberta_output.hidden_states[-1]
 
-        weights_love = self.attention_love(last_layer_hidden_states)
-        context_vector_love = torch.sum(weights_love * last_layer_hidden_states, dim=1)
+        weights = self.attention(last_layer_hidden_states)
+        context_vector = torch.sum(weights * last_layer_hidden_states, dim=1)
 
-        weights_joy = self.attention_joy(last_layer_hidden_states)
-        context_vector_joy = torch.sum(weights_joy * last_layer_hidden_states, dim=1)
-
-        weights_fright = self.attention_fright(last_layer_hidden_states)
-        context_vector_fright = torch.sum(weights_fright * last_layer_hidden_states, dim=1)
-
-        weights_anger = self.attention_anger(last_layer_hidden_states)
-        context_vector_anger = torch.sum(weights_anger * last_layer_hidden_states, dim=1)
-
-        weights_fear = self.attention_fear(last_layer_hidden_states)
-        context_vector_fear = torch.sum(weights_fear * last_layer_hidden_states, dim=1)
-
-        weights_sorrow = self.attention_sorrow(last_layer_hidden_states)
-        context_vector_sorrow = torch.sum(weights_sorrow * last_layer_hidden_states, dim=1)
-
-        love = self.out_love(context_vector_love)
-        joy = self.out_joy(context_vector_joy)
-        fright = self.out_fright(context_vector_fright)
-        anger = self.out_anger(context_vector_anger)
-        fear = self.out_fear(context_vector_fear)
-        sorrow = self.out_sorrow(context_vector_sorrow)
+        love = self.out_love(context_vector)
+        joy = self.out_joy(context_vector)
+        fright = self.out_fright(context_vector)
+        anger = self.out_anger(context_vector)
+        fear = self.out_fear(context_vector)
+        sorrow = self.out_sorrow(context_vector)
 
         return {
             'love': love, 'joy': joy, 'fright': fright,
@@ -258,7 +225,6 @@ warm_up_ratio = 0.000
 
 trainset = RoleDataset(tokenizer, max_len, mode='train')
 train_loader = create_dataloader(trainset, batch_size, mode='train')
-
 valset = RoleDataset(tokenizer, max_len, mode='test')
 valid_loader = create_dataloader(valset, batch_size, mode='test')
 
@@ -282,45 +248,73 @@ criterion = nn.BCEWithLogitsLoss().cuda()
 
 
 # 模型训练
-def do_train(model, date_loader, criterion, optimizer, scheduler, metric=None):
-    model.train()
+def do_train(model, criterion, optimizer, scheduler, metric=None, K=5):
+    best_model = None
+    best_performance = 1
     global_step = 0
     tic_train = time.time()
     log_steps = 100
-    for epoch in range(EPOCHS):
-        losses = []
-        for step, sample in enumerate(train_loader):
-            input_ids = sample["input_ids"].cuda()
-            attention_mask = sample["attention_mask"].cuda()
+    for k in range(K):
+        k_model = copy.deepcopy(model)
+        k_model.train()
+        k_train_dataframe = pd.DataFrame()
+        k_test_dataframe = pd.DataFrame()
+        for _ in range(K):
+            if _ != k:
+                k_train_dataframe = pd.concat(k_train_dataframe, train_dataframe_section[_])
+            else:
+                k_test_dataframe = train_dataframe_section[_]
+        k_train_set = RoleDataset(tokenizer, max_len, k_train_dataframe, mode='train')
+        k_train_loader = create_dataloader(k_train_set, batch_size, mode='train')
+        for epoch in range(EPOCHS):
+            losses = []
+            for step, sample in enumerate(k_train_loader):
+                input_ids = sample["input_ids"].cuda()
+                attention_mask = sample["attention_mask"].cuda()
 
-            outputs = model(input_ids=input_ids, attention_mask=attention_mask)
+                outputs = k_model(input_ids=input_ids, attention_mask=attention_mask)
 
-            loss_love = criterion(outputs['love'], sample['love'].view(-1, 1).cuda())
-            loss_joy = criterion(outputs['joy'], sample['joy'].view(-1, 1).cuda())
-            loss_fright = criterion(outputs['fright'], sample['fright'].view(-1, 1).cuda())
-            loss_anger = criterion(outputs['anger'], sample['anger'].view(-1, 1).cuda())
-            loss_fear = criterion(outputs['fear'], sample['fear'].view(-1, 1).cuda())
-            loss_sorrow = criterion(outputs['sorrow'], sample['sorrow'].view(-1, 1).cuda())
-            loss = loss_love + loss_joy + loss_fright + loss_anger + loss_fear + loss_sorrow
+                loss_love = criterion(outputs['love'], sample['love'].view(-1, 1).cuda())
+                loss_joy = criterion(outputs['joy'], sample['joy'].view(-1, 1).cuda())
+                loss_fright = criterion(outputs['fright'], sample['fright'].view(-1, 1).cuda())
+                loss_anger = criterion(outputs['anger'], sample['anger'].view(-1, 1).cuda())
+                loss_fear = criterion(outputs['fear'], sample['fear'].view(-1, 1).cuda())
+                loss_sorrow = criterion(outputs['sorrow'], sample['sorrow'].view(-1, 1).cuda())
+                loss = loss_love + loss_joy + loss_fright + loss_anger + loss_fear + loss_sorrow
 
-            losses.append(loss.item())
+                losses.append(loss.item())
 
-            loss.backward()
+                loss.backward()
 
-            #             nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)
-            optimizer.step()
-            scheduler.step()
-            optimizer.zero_grad()
+                #             nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)
+                optimizer.step()
+                scheduler.step()
+                optimizer.zero_grad()
 
-            global_step += 1
+                global_step += 1
 
-            if global_step % log_steps == 0:
-                print("global step %d, epoch: %d, batch: %d, loss: %.5f, speed: %.2f step/s, lr: %.10f"
-                      % (global_step, epoch, step, np.mean(losses), global_step / (time.time() - tic_train),
-                         float(scheduler.get_last_lr()[0])))
+                if global_step % log_steps == 0:
+                    print(
+                        "Cross Validation %d Of %d global step %d, epoch: %d, batch: %d, loss: %.5f, speed: %.2f step/s, lr: %.10f"
+                        % (k, K, global_step, epoch, step, np.mean(losses), global_step / (time.time() - tic_train),
+                           float(scheduler.get_last_lr()[0])))
+
+        k_test_set = RoleDataset(tokenizer, max_len, k_test_dataframe, mode='test')
+        k_test_loader = create_dataloader(k_test_set, batch_size, mode='test')
+        k_test_pred = predict(k_model, k_test_loader)
+        k_test_label = np.array(
+            [[k_test_set.labels[_][col] for col in target_cols] for _ in range(len(k_test_set.labels))])
+        k_mse = mean_squared_error(y_true=k_test_label, y_pred=k_test_pred)
+        print("K=%d MSE=%.5f RMSE=%.5f" % (k, k_mse, np.sqrt(k_mse)))
+        if k_mse < best_performance:
+            best_model = copy.deepcopy(k_model)
+    if best_model != None:
+        print('Best Model MSE=%.5f RMSE=%.5f' % (best_performance, np.sqrt(best_performance)))
+        k_model = best_model
+    return k_model
 
 
-do_train(model, train_loader, criterion, optimizer, scheduler)
+model = do_train(model, criterion, optimizer, scheduler)
 
 # 模型预测
 from collections import defaultdict
