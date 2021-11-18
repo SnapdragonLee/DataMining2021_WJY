@@ -148,14 +148,14 @@ def init_params(module_lst):
 
 
 class IQIYModelLite(nn.Module):
-    def __init__(self, n_classes, model_name, model_path):
+    def __init__(self, n_classes, model_name):
         super(IQIYModelLite, self).__init__()
-        config = AutoConfig.from_pretrained(model_path)
+        config = AutoConfig.from_pretrained(model_name)
         config.update({"output_hidden_states": True,
                        "hidden_dropout_prob": 0.0,
                        "layer_norm_eps": 1e-7})
 
-        self.base = BertModel.from_pretrained(model_path, config=config)
+        self.base = BertModel.from_pretrained(model_name, config=config)
 
         dim = 1024 if 'large' in model_name else 768
 
@@ -165,7 +165,6 @@ class IQIYModelLite(nn.Module):
             nn.Linear(512, 1),
             nn.Softmax(dim=1)
         )
-
         # self.attention = AttentionHead(h_size=dim, hidden_dim=512, w_drop=0.0, v_drop=0.0)
 
         self.out_love = nn.Sequential(
@@ -188,16 +187,17 @@ class IQIYModelLite(nn.Module):
         )
 
         init_params([self.out_love, self.out_joy, self.out_fright, self.out_anger,
-                     self.out_fear, self.out_sorrow, self.attention])
+                     self.out_fear,  self.out_sorrow, self.attention])
 
     def forward(self, input_ids, attention_mask):
         roberta_output = self.base(input_ids=input_ids,
                                    attention_mask=attention_mask)
 
         last_layer_hidden_states = roberta_output.hidden_states[-1]
-
         weights = self.attention(last_layer_hidden_states)
-        context_vector = torch.sum(weights * last_layer_hidden_states, dim=1)
+        # print(weights.size())
+        context_vector = torch.sum(weights*last_layer_hidden_states, dim=1)
+        # context_vector = weights
 
         love = self.out_love(context_vector)
         joy = self.out_joy(context_vector)
