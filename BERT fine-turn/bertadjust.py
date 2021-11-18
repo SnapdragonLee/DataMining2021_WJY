@@ -11,6 +11,8 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
+from collections import defaultdict
+
 from torch.utils.data import DataLoader
 from torch.utils.data.dataset import Dataset
 from transformers import BertPreTrainedModel, BertTokenizer, BertConfig, BertModel, AutoConfig
@@ -247,6 +249,23 @@ scheduler = get_linear_schedule_with_warmup(
 criterion = nn.BCEWithLogitsLoss().cuda()
 
 
+def predict(model, test_loader, title=''):
+    val_loss = 0
+    test_pred = defaultdict(list)
+    model.eval()
+    model.cuda()
+    for batch in tqdm(test_loader, desc='Pred' + title):
+        b_input_ids = batch['input_ids'].cuda()
+        attention_mask = batch["attention_mask"].cuda()
+        with torch.no_grad():
+            logists = model(input_ids=b_input_ids, attention_mask=attention_mask)
+            for col in target_cols:
+                out2 = logists[col].sigmoid().squeeze(1) * 3.0
+                test_pred[col].extend(out2.cpu().numpy().tolist())
+
+    return test_pred
+
+
 # 模型训练
 def do_train(model, criterion, optimizer, scheduler, metric=None, K=5):
     best_model = None
@@ -261,7 +280,7 @@ def do_train(model, criterion, optimizer, scheduler, metric=None, K=5):
         k_test_dataframe = pd.DataFrame()
         for _ in range(K):
             if _ != k:
-                k_train_dataframe = pd.concat(k_train_dataframe, train_dataframe_section[_])
+                k_train_dataframe = pd.concat([k_train_dataframe, train_dataframe_section[_]])
             else:
                 k_test_dataframe = train_dataframe_section[_]
         k_train_set = RoleDataset(tokenizer, max_len, k_train_dataframe, mode='train')
@@ -301,9 +320,12 @@ def do_train(model, criterion, optimizer, scheduler, metric=None, K=5):
 
         k_test_set = RoleDataset(tokenizer, max_len, k_test_dataframe, mode='test')
         k_test_loader = create_dataloader(k_test_set, batch_size, mode='test')
-        k_test_pred = predict(k_model, k_test_loader)
+        k_test_pred = predict(k_model, k_test_loader, title=str(k))
+        k_test_pred = np.array(
+            [[k_test_pred[col][_] for col in target_cols] for _ in range(len(k_test_set.labels))])
         k_test_label = np.array(
             [[k_test_set.labels[_][col] for col in target_cols] for _ in range(len(k_test_set.labels))])
+
         k_mse = mean_squared_error(y_true=k_test_label, y_pred=k_test_pred)
         print("K=%d MSE=%.5f RMSE=%.5f" % (k, k_mse, np.sqrt(k_mse)))
         if k_mse < best_performance:
@@ -317,12 +339,12 @@ def do_train(model, criterion, optimizer, scheduler, metric=None, K=5):
 model = do_train(model, criterion, optimizer, scheduler)
 
 # 模型预测
-from collections import defaultdict
+
 
 model.eval()
 
 test_pred = defaultdict(list)
-for step, batch in tqdm(enumerate(valid_loader)):
+for step, batch in tqdm(enumerate(valid_loader), desc='Final Pred'):
     b_input_ids = batch['input_ids'].cuda()
     attention_mask = batch["attention_mask"].cuda()
     with torch.no_grad():
@@ -333,24 +355,6 @@ for step, batch in tqdm(enumerate(valid_loader)):
 
     print(test_pred)
     break
-
-
-def predict(model, test_loader):
-    val_loss = 0
-    test_pred = defaultdict(list)
-    model.eval()
-    model.cuda()
-    for batch in tqdm(test_loader):
-        b_input_ids = batch['input_ids'].cuda()
-        attention_mask = batch["attention_mask"].cuda()
-        with torch.no_grad():
-            logists = model(input_ids=b_input_ids, attention_mask=attention_mask)
-            for col in target_cols:
-                out2 = logists[col].sigmoid().squeeze(1) * 3.0
-                test_pred[col].extend(out2.cpu().numpy().tolist())
-
-    return test_pred
-
 
 submit = pd.read_csv(path.get_dataset_path('submit_example.tsv'), sep='\t')
 test_pred = predict(model, valid_loader)
