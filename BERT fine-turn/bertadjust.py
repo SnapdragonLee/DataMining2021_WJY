@@ -340,6 +340,7 @@ def do_train(criterion, metric=None, K=5):
         print("K=%d MSE=%.5f RMSE=%.5f" % (k, k_mse, np.sqrt(k_mse)))
         if k_mse < best_performance:
             best_model = copy.deepcopy(k_model)
+            best_performance = k_mse
     if best_model != None:
         print('Best Model MSE=%.5f RMSE=%.5f' % (best_performance, np.sqrt(best_performance)))
         k_model = best_model
