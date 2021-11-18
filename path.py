@@ -27,7 +27,7 @@ def get_dataset_path(name: str):
 
 
 def get_pretrain_model_path(index: int):
-    return os.path.join(os.path.abspath('..\\..'), pretrained_model[index])
+    return os.path.join(os.path.abspath('..'), pretrained_model[index])
 
 
 if __name__ == '__main__':
