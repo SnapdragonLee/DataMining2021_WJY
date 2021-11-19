@@ -366,7 +366,7 @@ def do_train(criterion, metric=None, K=5):
     if best_model != None:
         print('Best Model MSE=%.5f RMSE=%.5f Scores=%.5f' % (
             best_performance, np.sqrt(best_performance), 1 / (1 + np.sqrt(best_performance))))
-        best_model = torch.load(path.build_model_path('bestModel{}').format(PRE_TRAINED_MODEL_NAME))
+        best_model = torch.load(path.build_model_path('bestModel{}.nn').format(PRE_TRAINED_MODEL_NAME))
     return best_model
 
 
