@@ -5,7 +5,7 @@ bert-base-chinese/
 chinese_simbert_L-12_H-768_A-12/
 *.docx
 path.py
-
+*.nn
 # data
 dataset/pre_treated_dataset.txt
 encode.csv
