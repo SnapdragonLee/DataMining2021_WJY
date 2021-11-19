@@ -1,6 +1,8 @@
 import os
 
-pretrained_model = ("bert-base-chinese", "chinese-roberta-wwm-ext", "chinese_simbert_L-12_H-768_A-12")
+pretrained_model = (
+    "bert-base-chinese", "chinese-roberta-wwm-ext", "chinese-macbert-large", "chinese-roberta-wwm-ext-large",
+    "chinese_simbert_L-12_H-768_A-12")
 origin_test_data_name = "test_dataset.tsv"
 origin_train_data_name = "train_dataset_v2.tsv"
 
@@ -31,7 +33,7 @@ def get_dataset_path(name: str):
 
 
 def get_pretrain_model_path(index: int):
-    return os.path.join(os.path.abspath('..'), pretrained_model[index])
+    return os.path.join(os.path.abspath('..\\..'), pretrained_model[index])
 
 
 if __name__ == '__main__':
