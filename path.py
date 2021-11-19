@@ -17,6 +17,10 @@ def build_random_forest_model_path(name: str):
     return os.path.join(os.path.abspath('..'), 'RandomForestModel', name)
 
 
+def build_model_path(name: str):
+    return os.path.join(os.path.abspath('..'), 'Model', name)
+
+
 def get_origin_train_data_path(is_train_data=True):
     return os.path.join(os.path.abspath('..\\..'), "dataset",
                         origin_train_data_name if is_train_data else origin_test_data_name)
