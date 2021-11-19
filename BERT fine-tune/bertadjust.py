@@ -275,6 +275,7 @@ def predict(model, test_loader, title=''):
     model.cuda()
     for batch in tqdm(test_loader, desc='Pred' + title):
         b_input_ids = batch['input_ids'].cuda()
+
         attention_mask = batch["attention_mask"].cuda()
         with torch.no_grad():
             logists = model(input_ids=b_input_ids, attention_mask=attention_mask)
@@ -300,6 +301,7 @@ def get_ki_dataframe(ki: int, data_num: int):
 
 # 模型训练
 def do_train(criterion, metric=None, K=5):
+    best_model_name = 'Epoch 3 data=(origin similar del) bestModel{}.nn'
     best_model = None
     best_performance = 1
     global_step = 0
@@ -360,13 +362,13 @@ def do_train(criterion, metric=None, K=5):
         k_mse = mean_squared_error(y_true=k_test_label, y_pred=k_test_pred)
         print("K=%d MSE=%.5f RMSE=%.5f" % (k, k_mse, np.sqrt(k_mse)))
         if k_mse < best_performance:
-            torch.save(k_model, path.build_model_path('bestModel{}.nn').format(PRE_TRAINED_MODEL_NAME))
+            torch.save(k_model, path.build_model_path(best_model_name).format(PRE_TRAINED_MODEL_NAME))
             del k_model
             best_performance = k_mse
     if best_model != None:
         print('Best Model MSE=%.5f RMSE=%.5f Scores=%.5f' % (
             best_performance, np.sqrt(best_performance), 1 / (1 + np.sqrt(best_performance))))
-        best_model = torch.load(path.build_model_path('Epoch 3 data=(origin similar del) bestModel{}.nn').format(PRE_TRAINED_MODEL_NAME))
+        best_model = torch.load(path.build_model_path(best_model_name).format(PRE_TRAINED_MODEL_NAME))
     return best_model
 
 
