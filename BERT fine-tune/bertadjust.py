@@ -29,6 +29,7 @@ import path
 
 # K折交叉验证
 K = 5
+PRE_TRAIN_MODEL_NUM = 1
 
 
 def read_data_and_save_as_new_tsv(origin_name, new_tsv_num: int):
@@ -147,8 +148,8 @@ def create_dataloader(dataset, batch_size, mode='train'):
 
 # 加载预训练模型
 # roberta
-PRE_TRAINED_MODEL_NAME = path.pretrained_model[1]
-PRE_TRAINED_MODEL_PATH = path.get_pretrain_model_path(1)  # 'hfl/chinese-roberta-wwm-ext'
+PRE_TRAINED_MODEL_NAME = path.pretrained_model[PRE_TRAIN_MODEL_NUM]
+PRE_TRAINED_MODEL_PATH = path.get_pretrain_model_path(PRE_TRAIN_MODEL_NUM)  # 'hfl/chinese-roberta-wwm-ext'
 tokenizer = BertTokenizer.from_pretrained(PRE_TRAINED_MODEL_PATH)
 base_model = BertModel.from_pretrained(PRE_TRAINED_MODEL_PATH)  # 加载预训练模型
 
