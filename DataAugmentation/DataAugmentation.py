@@ -35,7 +35,7 @@ def augment_data():
     }
     simbert = Simbert(config=config)"""
     for content in tqdm(contents):
-        single_new_contents = del_word(content, NEW_CONTENT_NUM)
+        single_new_contents = similar_word(content, NEW_CONTENT_NUM)
 
         for i in range(NEW_CONTENT_NUM):
             new_contents[i].append(single_new_contents[i])
