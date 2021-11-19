@@ -28,8 +28,9 @@ def augment_data():
             new_contents[i].append(single_new_contents[i])
 
     for i in range(NEW_CONTENT_NUM):
-        with open(path.get_dataset_path('train_data_augment_del_word{0}.txt'.format(i)), 'w',
+        with open(path.get_dataset_path('train_data_augment_similar_word{0}.txt'.format(i)), 'w',
                   encoding='utf-8') as tar:
+            tar.write("id\tcontent\tcharacter\temotions\n")
             for j in tqdm(range(len(contents)), desc='train data augment {0}'.format(i)):
                 tar.write(
                     "{0}\t{1}\t{2}\t{3}\n".format(data_set['OId'][j], new_contents[i][j], data_set['characters'][j],

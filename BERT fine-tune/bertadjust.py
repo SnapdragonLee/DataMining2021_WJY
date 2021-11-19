@@ -30,38 +30,41 @@ import path
 # K折交叉验证
 K = 5
 
-with open(path.get_dataset_path('train_dataset_v2.tsv'), 'r', encoding='utf-8') as handler:
-    lines = handler.read().split('\n')[1:-1]
-    # 第一句为标签    最后一句为空行
 
-    data = list()
-    for line in tqdm(lines):
-        sp = line.split('\t')
-        if len(sp) != 4:
-            print("Error: ", sp)
-            continue
-        data.append(sp)
+def read_data_and_save_as_new_tsv(origin_name, new_tsv_num: int):
+    with open(path.get_dataset_path(origin_name), 'r', encoding='utf-8') as handler:
+        lines = handler.read().split('\n')[1:-1]
+        # 第一句为标签    最后一句为空行
 
-train = pd.DataFrame(data)
-train.columns = ['id', 'content', 'character', 'emotions']
+        data = list()
+        for line in tqdm(lines):
+            sp = line.split('\t')
+            if len(sp) != 4:
+                print("Error: ", sp)
+                continue
+            data.append(sp)
+
+    train = pd.DataFrame(data)
+    train.columns = ['id', 'content', 'character', 'emotions']
+    train = train[train['emotions'] != '']
+    train['text'] = train['content'].astype(str) + '角色: ' + train['character'].astype(str)
+    train['emotions'] = train['emotions'].apply(lambda x: [int(_i) for _i in x.split(',')])
+
+    train[['love', 'joy', 'fright', 'anger', 'fear', 'sorrow']] = train['emotions'].values.tolist()
+    train.to_csv(path.get_dataset_path('train%d.csv' % new_tsv_num),
+                 columns=['id', 'content', 'character', 'text', 'love', 'joy', 'fright', 'anger', 'fear', 'sorrow'],
+                 sep='\t',
+                 index=False)
+
 
 test = pd.read_csv(path.get_dataset_path('test_dataset.tsv'), sep='\t')
 submit = pd.read_csv(path.get_dataset_path('submit_example.tsv'), sep='\t')
-train = train[train['emotions'] != '']
 
 # 数据处理
-train['text'] = train['content'].astype(str) + '角色: ' + train['character'].astype(str)
+
 test['text'] = test['content'].astype(str) + ' 角色: ' + test['character'].astype(str)
 
-train['emotions'] = train['emotions'].apply(lambda x: [int(_i) for _i in x.split(',')])
-
-train[['love', 'joy', 'fright', 'anger', 'fear', 'sorrow']] = train['emotions'].values.tolist()
 test[['love', 'joy', 'fright', 'anger', 'fear', 'sorrow']] = [0, 0, 0, 0, 0, 0]
-
-train.to_csv(path.get_dataset_path('train.csv'),
-             columns=['id', 'content', 'character', 'text', 'love', 'joy', 'fright', 'anger', 'fear', 'sorrow'],
-             sep='\t',
-             index=False)
 
 test.to_csv(path.get_dataset_path('test.csv'),
             columns=['id', 'content', 'character', 'text', 'love', 'joy', 'fright', 'anger', 'fear', 'sorrow'],
@@ -72,14 +75,24 @@ test.to_csv(path.get_dataset_path('test.csv'),
 target_cols = ['love', 'joy', 'fright', 'anger', 'fear', 'sorrow']
 
 train_dataframe = pd.read_csv(path.get_dataset_path('train.csv'), sep='\t')
-# 乱序
-train_dataframe = train_dataframe.sample(frac=1, random_state=1)
-train_dataframe_section = []
-train_dataframe_section_size = len(train_dataframe) // K
 
-for _ in range(K):
-    train_dataframe_section.append(
-        train_dataframe[train_dataframe_section_size * _:train_dataframe_section_size * (_ + 1)])
+
+def read_data_and_split_section(number_of_train_set: int):
+    _dataframe = pd.read_csv(path.get_dataset_path('train%d.csv' % number_of_train_set), sep='\t')
+    # 乱序
+    _dataframe = _dataframe.sample(frac=1, random_state=1)
+    _dataframe_section = []
+    train_dataframe_section_size = len(_dataframe) // K
+    for _ in range(K):
+        _dataframe_section.append(
+            _dataframe[train_dataframe_section_size * _:train_dataframe_section_size * (_ + 1)])
+    return _dataframe_section
+
+
+train_dataframe_sections = list()
+for _, file_name in enumerate(path.dataset_names):
+    read_data_and_save_as_new_tsv(file_name, _)
+    train_dataframe_sections.append(read_data_and_split_section(_))
 
 
 class RoleDataset(Dataset):
@@ -271,6 +284,19 @@ def predict(model, test_loader, title=''):
     return test_pred
 
 
+# 构建 第Ki折的数据
+def get_ki_dataframe(ki: int, data_num: int):
+    train_dataframe_section = train_dataframe_sections[data_num]
+    k_train_dataframe = pd.DataFrame()
+    k_test_dataframe = pd.DataFrame()
+    for _ in range(K):
+        if _ != ki:
+            k_train_dataframe = pd.concat([k_train_dataframe, train_dataframe_section[_]])
+        else:
+            k_test_dataframe = train_dataframe_section[_]
+    return k_train_dataframe, k_test_dataframe
+
+
 # 模型训练
 def do_train(criterion, metric=None, K=5):
     best_model = None
@@ -282,20 +308,14 @@ def do_train(criterion, metric=None, K=5):
         k_model, optimizer, scheduler = build_model()
         k_model.cuda()
         k_model.train()
-
-        k_train_dataframe = pd.DataFrame()
         k_test_dataframe = pd.DataFrame()
-        for _ in range(K):
-            if _ != k:
-                k_train_dataframe = pd.concat([k_train_dataframe, train_dataframe_section[_]])
-            else:
-                k_test_dataframe = train_dataframe_section[_]
-
-        k_train_set = RoleDataset(tokenizer, max_len, k_train_dataframe, mode='train')
-        k_train_loader = create_dataloader(k_train_set, batch_size, mode='train')
 
         for epoch in range(EPOCHS):
             losses = []
+            k_train_dataframe, k_test_dataframe_section = get_ki_dataframe(k, epoch)
+            pd.concat([k_test_dataframe, k_test_dataframe_section])
+            k_train_set = RoleDataset(tokenizer, max_len, k_train_dataframe, mode='train')
+            k_train_loader = create_dataloader(k_train_set, batch_size, mode='train')
             for step, sample in enumerate(k_train_loader):
                 # print(sample)
                 input_ids = sample["input_ids"].cuda()

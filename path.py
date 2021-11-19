@@ -5,6 +5,8 @@ pretrained_model = (
     "chinese_simbert_L-12_H-768_A-12")
 origin_test_data_name = "test_dataset.tsv"
 origin_train_data_name = "train_dataset_v2.tsv"
+dataset_names = [origin_train_data_name, 'train_data_augment_similar_word0.txt', "train_data_augment_del_word0.txt",
+                 'train_data_augment_similar_word1.txt', "train_data_augment_del_word1.txt"]
 
 
 def build_submit_path(name: str):
