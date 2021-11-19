@@ -6,7 +6,20 @@ from tqdm import tqdm
 from googletrans import Translator
 import BERT_Random_Forest
 import path
-from BERT_Random_Forest import input
+from BERT_Random_Forest import input, const_val
+
+
+def link_content_and_save(link_num):
+    const_val.MAX_LINK_NUM_OF_CONTENT = link_num
+    data_set = input.get_data()
+    new_contents = data_set['link_content']
+    with open(path.get_dataset_path('train_data_augment_link{0}.txt'.format(link_num)), 'w',
+              encoding='utf-8') as tar:
+        tar.write("id\tcontent\tcharacter\temotions\n")
+        for j in tqdm(range(len(new_contents)), desc='train data augment link {0}'.format(link_num)):
+            tar.write(
+                "{0}\t{1}\t{2}\t{3}\n".format(data_set['OId'][j], new_contents[j], data_set['characters'][j],
+                                              str(data_set['emotions'][j])[1:-1]))
 
 
 def augment_data():
@@ -106,4 +119,4 @@ def build_sentence(origin: str, nums: int, simbert):
 
 
 if __name__ == '__main__':
-    augment_data()
+    link_content_and_save(1)
