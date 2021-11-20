@@ -305,7 +305,6 @@ BESTMODEL_NAME = 'K{0} link{1} bestModel{2}.nn'
 
 # 模型训练
 def do_train(criterion, metric=None, K=5):
-    best_model_name = 'Epoch 3 data=(origin similar del) bestModel{}.nn'
     best_model = None
     best_performance = 1
     global_step = 0
