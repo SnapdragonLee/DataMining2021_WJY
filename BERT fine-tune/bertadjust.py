@@ -232,7 +232,7 @@ class IQIYModelLite(nn.Module):
 
 
 # 参数配置
-EPOCHS = 3
+EPOCHS = 2
 weight_decay = 0.0
 data_path = 'data'
 warmup_proportion = 0.0
