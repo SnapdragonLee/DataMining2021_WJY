@@ -319,7 +319,7 @@ def do_train(criterion, metric=None, K=5):
         for epoch in range(EPOCHS):
             losses = []
             k_train_dataframe, k_test_dataframe_section = get_ki_dataframe(k, epoch)
-            pd.concat([k_test_dataframe, k_test_dataframe_section])
+            k_train_dataframe = pd.concat([k_test_dataframe, k_test_dataframe_section])
             k_train_set = RoleDataset(tokenizer, max_len, k_train_dataframe, mode='train')
             k_train_loader = create_dataloader(k_train_set, batch_size, mode='train')
             for step, sample in enumerate(k_train_loader):
