@@ -10,7 +10,7 @@ from BERT_Random_Forest import input, const_val
 
 
 def link_content_and_save(link_num, is_train=True):
-    const_val.MAX_LINK_NUM_OF_CONTENT = link_num
+    const_val.set_MAX_LINK_NUM_OF_CONTENT(link_num)
     data_set = input.get_data(is_train_data=is_train)
     new_contents = data_set['link_content']
     if is_train:
@@ -44,8 +44,9 @@ def augment_data():
             new_contents[i].append(single_new_contents[i])
 
     for i in range(NEW_CONTENT_NUM):
-        with open(path.get_dataset_path('train_data_augment_link_2_similar_word{0}.txt'.format(i)), 'w',
-                  encoding='utf-8') as tar:
+        with open(path.get_dataset_path(
+                'train_data_augment_link_{0}_similar_word{1}.txt'.format(const_val.MAX_LINK_NUM_OF_CONTENT, i)), 'w',
+                encoding='utf-8') as tar:
             tar.write("id\tcontent\tcharacter\temotions\n")
             for j in tqdm(range(len(contents)), desc='train data augment {0}'.format(i)):
                 tar.write(
@@ -122,5 +123,6 @@ def build_sentence(origin: str, nums: int, simbert):
 
 
 if __name__ == '__main__':
-    link_content_and_save(1, False)
-    link_content_and_save(2, False)
+    link_content_and_save(3, False)
+    augment_data()
+    link_content_and_save(4, False)
