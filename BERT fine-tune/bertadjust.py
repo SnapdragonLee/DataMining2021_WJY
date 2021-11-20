@@ -30,7 +30,7 @@ import path
 # K折交叉验证
 K = 5
 PRE_TRAIN_MODEL_NUM = 1
-LINK_NUM = 1
+LINK_NUM = 0
 
 
 def read_data_and_save_as_new_tsv(origin_name, new_tsv_num: int):
@@ -68,7 +68,7 @@ test['text'] = test['content'].astype(str) + ' 角色: ' + test['character'].ast
 
 test[['love', 'joy', 'fright', 'anger', 'fear', 'sorrow']] = [0, 0, 0, 0, 0, 0]
 
-test.to_csv(path.get_dataset_path('test.csv'),
+test.to_csv(path.get_dataset_path('test{}.csv'.format(LINK_NUM)),
             columns=['id', 'content', 'character', 'text', 'love', 'joy', 'fright', 'anger', 'fear', 'sorrow'],
             sep='\t',
             index=False)
@@ -98,13 +98,13 @@ for _, file_name in enumerate(path.train_dataset_names[LINK_NUM]):
 
 
 class RoleDataset(Dataset):
-    def __init__(self, tokenizer, max_len, _train_dataframe=train_dataframe, mode='train'):
+    def __init__(self, tokenizer, max_len, _train_dataframe=train_dataframe, mode='train', test_num=LINK_NUM):
         super(RoleDataset, self).__init__()
         if mode == 'train':
             self.data = _train_dataframe
             # print(_train_dataframe['text'])
         else:
-            self.data = pd.read_csv(path.get_dataset_path('test.csv'), sep='\t')
+            self.data = pd.read_csv(path.get_dataset_path('test{}.csv'.format(test_num)), sep='\t')
         self.texts = self.data['text'].tolist()
         self.labels = self.data[target_cols].to_dict('records')
         self.tokenizer = tokenizer
@@ -354,7 +354,7 @@ def do_train(criterion, metric=None, K=5):
                         % (k, K, global_step, epoch, step, np.mean(losses), global_step / (time.time() - tic_train),
                            float(scheduler.get_last_lr()[0])))
 
-        k_test_set = RoleDataset(tokenizer, max_len, k_test_dataframe, mode='test')
+        k_test_set = RoleDataset(tokenizer, max_len, k_test_dataframe, mode='train')
         k_test_loader = create_dataloader(k_test_set, batch_size, mode='test')
         k_test_pred = predict(k_model, k_test_loader, title=str(k))
         k_test_pred = np.array(
@@ -376,6 +376,43 @@ def do_train(criterion, metric=None, K=5):
     return best_model
 
 
+"""
+##############################################
+# 这部分代码为模型软投票
+##############################################
+def merge_pred(models: list, valid_loaders: list):
+    label_preds = np.zeros(6)
+    for model_num, model in enumerate(models):
+        valid_loader = valid_loaders[model_num]
+        test_pred = predict(model, valid_loader)
+        single_label_preds = []
+        for col in target_cols:
+            preds = test_pred[col]
+            single_label_preds.append(preds)
+        label_preds = label_preds + single_label_preds
+    label_preds = label_preds / len(models)
+    submit = pd.read_csv(path.get_dataset_path('submit_example.tsv'), sep='\t')
+    print(len(label_preds[0]))
+    sub = submit.copy()
+    sub['emotion'] = label_preds.tolist()
+    sub['emotion'] = sub['emotion'].apply(lambda x: ','.join([str(i) for i in x]))
+    sub.to_csv(
+        path.build_submit_path('MergeAns.tsv'),
+        sep='\t',
+        index=False)
+    sub.head()
+
+
+models = list()
+valid_loaders = list()
+for i, model_name in enumerate(path.MODELS_NAME):
+    models.append(torch.load(path.build_model_path(model_name)))
+    val_set = RoleDataset(tokenizer, max_len, mode='test', test_num=i)
+    valid_loader = create_dataloader(val_set, batch_size, mode='test')
+    valid_loaders.append(valid_loader)
+merge_pred(models, valid_loaders)
+##############################################
+"""
 model = do_train(criterion)
 
 # 模型预测
@@ -411,7 +448,7 @@ sub = submit.copy()
 sub['emotion'] = np.stack(label_preds, axis=1).tolist()
 sub['emotion'] = sub['emotion'].apply(lambda x: ','.join([str(i) for i in x]))
 sub.to_csv(
-    path.build_submit_path('K test link{0} {1}.tsv').format(PRE_TRAINED_MODEL_NAME.split('/')[-1]),
+    path.build_submit_path('K test link{0} {1}.tsv').format(LINK_NUM, PRE_TRAINED_MODEL_NAME.split('/')[-1]),
     sep='\t',
     index=False)
 sub.head()

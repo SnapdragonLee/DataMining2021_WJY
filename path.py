@@ -11,6 +11,8 @@ train_dataset_names = [
     ["train_data_augment_link1.txt", "train_data_augment_link_similar_word0.txt"],
     ["train_data_augment_link2.txt", "train_data_augment_link_2_similar_word0.txt"]]
 test_dataset_names = [origin_test_data_name, "test_data_link1.txt", "test_data_link2.txt"]
+MODELS_NAME = ["", "K5 link1 bestModelchinese-roberta-wwm-ext.nn", "K5 link2 bestModelchinese-roberta-wwm-ext.nn"]
+TEST_DATASET_NAME = []
 
 
 def build_submit_path(name: str):
