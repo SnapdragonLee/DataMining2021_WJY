@@ -276,6 +276,7 @@ def predict(model, test_loader, title=''):
     model.cuda()
     for batch in tqdm(test_loader, desc='Pred' + title):
         b_input_ids = batch['input_ids'].cuda()
+
         attention_mask = batch["attention_mask"].cuda()
         with torch.no_grad():
             logists = model(input_ids=b_input_ids, attention_mask=attention_mask)
@@ -304,6 +305,7 @@ BESTMODEL_NAME = 'K{0} link{1} bestModel{2}.nn'
 
 # 模型训练
 def do_train(criterion, metric=None, K=5):
+    best_model_name = 'Epoch 3 data=(origin similar del) bestModel{}.nn'
     best_model = None
     best_performance = 1
     global_step = 0
