@@ -389,7 +389,7 @@ def merge_pred(models: list, valid_loaders: list):
         for col in target_cols:
             preds = test_pred[col]
             single_label_preds.append(preds)
-        label_preds = label_preds + single_label_preds
+        label_preds = label_preds + np.stack(single_label_preds, axis=1)
     label_preds = label_preds / len(models)
     submit = pd.read_csv(path.get_dataset_path('submit_example.tsv'), sep='\t')
     print(len(label_preds[0]))
