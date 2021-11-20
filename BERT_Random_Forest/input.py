@@ -40,24 +40,26 @@ def build_train_data():
     return y, x, classifier_y, encoder
 
 
-def get_data(is_train_data=True):
+def get_data(is_train_data=True, data_path=None):
     """
     读取数据的函数，
     :return: dic由 'ids','contents','characters','emotions' ,'merged_sentences'作为key
             调用时可用 merged_sentences中的句子 句子形式 content + '[MASK]角色' + character
             新增 key ‘link_content’ 向前拼接的句子 'link_content_merged' 句子增加角色名
     """
-    data_path = path.get_origin_train_data_path() if is_train_data else path.get_origin_train_data_path(False)
+    data_path = data_path if data_path is not None \
+        else path.get_origin_train_data_path() if is_train_data else \
+        path.get_origin_train_data_path(False)
     data, table = read_data(data_path, is_train_data)
     if is_train_data:
         data = delete_empty_data(data)
         data['emotions'] = split_emotion(data['emotions'])
-        linked_content = sentence_merging_up(data, table)
-        data['link_content'] = linked_content
-        merged_sentences_link = sentence_merging_character(data, 'link_content')
-        merged_sentences = sentence_merging_character(data)
-        data['merged_sentences'] = merged_sentences
-        data['link_content_merged'] = merged_sentences_link
+    linked_content = sentence_merging_up(data, table)
+    data['link_content'] = linked_content
+    merged_sentences_link = sentence_merging_character(data, 'link_content')
+    merged_sentences = sentence_merging_character(data)
+    data['merged_sentences'] = merged_sentences
+    data['link_content_merged'] = merged_sentences_link
     return data
 
 
@@ -92,7 +94,7 @@ def read_data(file_path, is_train_data=True):
                 if is_train_data:
                     id = (int(script_id), int(scene_num), int(sentence_num))
                 else:
-                    id = (origin_id, int(script_id), int(scene_num), int(sentence_num))
+                    id = (int(script_id), int(scene_num), int(sentence_num))
                 origin_ids.append(origin_id)
                 script_ids.append(script_id)
                 scene_nums.append(scene_num)
@@ -111,7 +113,7 @@ def read_data(file_path, is_train_data=True):
         return {'ids': ids, 'contents': contents, 'characters': characters, 'emotions': emotions,
                 'OId': origin_ids}, content_dic
     else:
-        return {'ids': ids, 'contents': contents, 'characters': characters}, content_dic
+        return {'ids': ids, 'contents': contents, 'characters': characters, 'OId': origin_ids}, content_dic
 
 
 def delete_empty_data(data):

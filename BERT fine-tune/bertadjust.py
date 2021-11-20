@@ -30,6 +30,7 @@ import path
 # K折交叉验证
 K = 5
 PRE_TRAIN_MODEL_NUM = 1
+LINK_NUM = 1
 
 
 def read_data_and_save_as_new_tsv(origin_name, new_tsv_num: int):
@@ -58,7 +59,7 @@ def read_data_and_save_as_new_tsv(origin_name, new_tsv_num: int):
                  index=False)
 
 
-test = pd.read_csv(path.get_dataset_path('test_dataset.tsv'), sep='\t')
+test = pd.read_csv(path.get_dataset_path(path.test_dataset_names[LINK_NUM]), sep='\t')
 submit = pd.read_csv(path.get_dataset_path('submit_example.tsv'), sep='\t')
 
 # 数据处理
@@ -91,7 +92,7 @@ def read_data_and_split_section(number_of_train_set: int):
 
 
 train_dataframe_sections = list()
-for _, file_name in enumerate(path.dataset_names):
+for _, file_name in enumerate(path.train_dataset_names[LINK_NUM]):
     read_data_and_save_as_new_tsv(file_name, _)
     train_dataframe_sections.append(read_data_and_split_section(_))
 
@@ -298,6 +299,9 @@ def get_ki_dataframe(ki: int, data_num: int):
     return k_train_dataframe, k_test_dataframe
 
 
+BESTMODEL_NAME = 'K{0} link{1} bestModel{2}.nn'
+
+
 # 模型训练
 def do_train(criterion, metric=None, K=5):
     best_model = None
@@ -360,13 +364,14 @@ def do_train(criterion, metric=None, K=5):
         k_mse = mean_squared_error(y_true=k_test_label, y_pred=k_test_pred)
         print("K=%d MSE=%.5f RMSE=%.5f" % (k, k_mse, np.sqrt(k_mse)))
         if k_mse < best_performance:
-            torch.save(k_model, path.build_model_path('bestModel{}.nn').format(PRE_TRAINED_MODEL_NAME))
+            torch.save(k_model, path.build_model_path(BESTMODEL_NAME).format(K, LINK_NUM, PRE_TRAINED_MODEL_NAME))
             del k_model
             best_performance = k_mse
-    if best_model != None:
+    if best_performance != 1:
         print('Best Model MSE=%.5f RMSE=%.5f Scores=%.5f' % (
             best_performance, np.sqrt(best_performance), 1 / (1 + np.sqrt(best_performance))))
-        best_model = torch.load(path.build_model_path('Epoch 3 data=(origin similar del) bestModel{}.nn').format(PRE_TRAINED_MODEL_NAME))
+        best_model = torch.load(
+            path.build_model_path(BESTMODEL_NAME).format(K, LINK_NUM, PRE_TRAINED_MODEL_NAME))
     return best_model
 
 
@@ -405,7 +410,7 @@ sub = submit.copy()
 sub['emotion'] = np.stack(label_preds, axis=1).tolist()
 sub['emotion'] = sub['emotion'].apply(lambda x: ','.join([str(i) for i in x]))
 sub.to_csv(
-    path.build_submit_path('K test baseline_{}.tsv').format(PRE_TRAINED_MODEL_NAME.split('/')[-1]),
+    path.build_submit_path('K test link{0} {1}.tsv').format(PRE_TRAINED_MODEL_NAME.split('/')[-1]),
     sep='\t',
     index=False)
 sub.head()

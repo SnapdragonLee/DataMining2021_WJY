@@ -9,31 +9,34 @@ import path
 from BERT_Random_Forest import input, const_val
 
 
-def link_content_and_save(link_num):
+def link_content_and_save(link_num, is_train=True):
     const_val.MAX_LINK_NUM_OF_CONTENT = link_num
-    data_set = input.get_data()
+    data_set = input.get_data(is_train_data=is_train)
     new_contents = data_set['link_content']
-    with open(path.get_dataset_path('train_data_augment_link{0}.txt'.format(link_num)), 'w',
-              encoding='utf-8') as tar:
-        tar.write("id\tcontent\tcharacter\temotions\n")
-        for j in tqdm(range(len(new_contents)), desc='train data augment link {0}'.format(link_num)):
-            tar.write(
-                "{0}\t{1}\t{2}\t{3}\n".format(data_set['OId'][j], new_contents[j], data_set['characters'][j],
-                                              str(data_set['emotions'][j])[1:-1]))
+    if is_train:
+        with open(path.get_dataset_path('train_data_augment_link{0}.txt'.format(link_num)), 'w',
+                  encoding='utf-8') as tar:
+            tar.write("id\tcontent\tcharacter\temotions\n")
+            for j in tqdm(range(len(new_contents)), desc='train data augment link {0}'.format(link_num)):
+                tar.write(
+                    "{0}\t{1}\t{2}\t{3}\n".format(data_set['OId'][j], new_contents[j], data_set['characters'][j],
+                                                  str(data_set['emotions'][j])[1:-1]))
+    else:
+        with open(path.get_dataset_path('test_data_link{0}.txt'.format(link_num)), 'w',
+                  encoding='utf-8') as tar:
+            tar.write("id\tcontent\tcharacter\n")
+            for j in tqdm(range(len(new_contents)), desc='test data link {0}'.format(link_num)):
+                tar.write(
+                    "{0}\t{1}\t{2}\n".format(data_set['OId'][j], new_contents[j], data_set['characters'][j]))
 
 
 def augment_data():
     NEW_CONTENT_NUM = 2
-    data_set = input.get_data()
+    data_set = input.get_data(
+        data_path=path.get_dataset_path("train_data_augment_link{0}.txt".format(const_val.MAX_LINK_NUM_OF_CONTENT)))
+
     contents = data_set['contents']
     new_contents = [[] for _ in range(NEW_CONTENT_NUM)]
-    """config = {
-        'model_path': path.get_pretrain_model_path(2),
-        'CUDA_VISIBLE_DEVICES': 'cuda',
-        'max_len': 200,
-        'seed': 1
-    }
-    simbert = Simbert(config=config)"""
     for content in tqdm(contents):
         single_new_contents = similar_word(content, NEW_CONTENT_NUM)
 
@@ -41,7 +44,7 @@ def augment_data():
             new_contents[i].append(single_new_contents[i])
 
     for i in range(NEW_CONTENT_NUM):
-        with open(path.get_dataset_path('train_data_augment_similar_word{0}.txt'.format(i)), 'w',
+        with open(path.get_dataset_path('train_data_augment_link_2_similar_word{0}.txt'.format(i)), 'w',
                   encoding='utf-8') as tar:
             tar.write("id\tcontent\tcharacter\temotions\n")
             for j in tqdm(range(len(contents)), desc='train data augment {0}'.format(i)):
@@ -119,4 +122,5 @@ def build_sentence(origin: str, nums: int, simbert):
 
 
 if __name__ == '__main__':
-    link_content_and_save(1)
+    link_content_and_save(1, False)
+    link_content_and_save(2, False)
