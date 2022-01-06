@@ -171,9 +171,10 @@ def main():
     # 读取数据
     y, x, classifier_y, label_encoder = read_data_encoded('pretreatedDataset WithOutLink.pretreatedData', False)
     regressor_data = y, x
+
+    regressor = train_and_save_regressor('randomForestRegressor link1 400.model', regressor_data, False)
+    regressor_predict_and_judge_effect(regressor, regressor_data)
     classifier_data = classifier_y, x
-    # regressor = train_and_save_regressor('randomForestRegressor link1 400.model', regressor_data, False)
-    # regressor_predict_and_judge_effect(regressor, regressor_data)
     classifier = train_and_save_classifier('randomForestClassifier without link 200.model', classifier_data, False)
     classifier_predict_and_judge_effect(classifier, classifier_data)
 
