@@ -1,14 +1,24 @@
 from transformers import AutoConfig, BertModel, BertTokenizer
 from torch import nn
 import torch
-from bertadjust import init_params
 import matplotlib.pyplot as plt
+from collections import defaultdict
 
-PRE_TRAINED_MODEL_PATH = "path/example"
-PRE_TRAINED_MODEL_NAME = 'example'
-trained_model_path = "path/example"
+PRE_TRAINED_MODEL_PATH = "..\\chinese-macbert-large"
+PRE_TRAINED_MODEL_NAME = 'chinese-macbert-large'
+trained_model_path = ".\\Model\\K5 link0 bestModelchinese-macbert-large.nn"
 test_sentences = ["b2哭的很伤心而a1却哈哈大笑。角色: b2", "b2哭的很伤心而a1却哈哈大笑。角色: a1"]
 tokenizer = BertTokenizer.from_pretrained(PRE_TRAINED_MODEL_PATH)
+
+target_cols = ['love', 'joy', 'fright', 'anger', 'fear', 'sorrow']
+
+
+def init_params(module_lst):
+    for module in module_lst:
+        for param in module.parameters():
+            if param.dim() > 1:
+                torch.nn.init.xavier_uniform_(param)
+    return
 
 
 class IQIYModelLite(nn.Module):
@@ -85,16 +95,27 @@ class IQIYModelLite(nn.Module):
 
 
 def encode(text):
-    _encoding = tokenizer.encode_plus(test_sentences[0],
+    _encoding = tokenizer.encode_plus(text,
                                       add_special_tokens=True,
-                                      max_length=128,
+                                      max_length=25,
                                       return_token_type_ids=True,
                                       pad_to_max_length=True,
                                       return_attention_mask=True,
                                       return_tensors='pt', )
-    _input_ids = _encoding['input_ids'].flatten(),
-    _attention_mask = _encoding['attention_mask'].flatten()
+
+    _input_ids = torch.unsqueeze(_encoding['input_ids'].flatten(), 0)
+
+    _attention_mask = torch.unsqueeze(_encoding['attention_mask'].flatten(), 0)
+
     return _input_ids, _attention_mask
+
+
+def show_pred(logists):
+    ans = defaultdict(list)
+    for col in target_cols:
+        out2 = logists[col].sigmoid().squeeze(1) * 3.0
+        ans[col].append(out2.cpu().numpy())
+    return ans
 
 
 if __name__ == '__main__':
@@ -102,19 +123,25 @@ if __name__ == '__main__':
     params = origin_model.state_dict()
     new_model = IQIYModelLite(1, model_name=PRE_TRAINED_MODEL_NAME, model_path=PRE_TRAINED_MODEL_PATH)
     new_model.load_state_dict(params)
-    input_ids, attention_mask = encode(test_sentences[0])
-    attention = new_model.get_attention(input_ids=input_ids, attention_mask=attention_mask)
-    print(f'text: {test_sentences[0]}')
-    print(attention.shape)
-    print(new_model(input_ids, attention_mask))
-    plt.figure("text1")
-    plt.plot(attention)
+    new_model.eval()
+    with torch.no_grad():
+        input_ids, attention_mask = encode(test_sentences[0])
+        attention = new_model.get_attention(input_ids=input_ids, attention_mask=attention_mask)
+        print(f'text: {test_sentences[0]}')
+        print(attention.shape)
+        attention = attention.numpy()
+        attention = attention.flatten()
+        print(show_pred(new_model(input_ids, attention_mask)))
+        plt.figure("text1")
+        plt.plot(attention)
 
-    input_ids, attention_mask = encode(test_sentences[1])
-    attention = new_model.get_attention(input_ids=input_ids, attention_mask=attention_mask)
-    print(f'text: {test_sentences[1]}')
-    print(attention.shape)
-    print(new_model(input_ids, attention_mask))
-    plt.figure("text2")
-    plt.plot(attention)
-    plt.show()
+        input_ids, attention_mask = encode(test_sentences[1])
+        attention = new_model.get_attention(input_ids=input_ids, attention_mask=attention_mask)
+        print(f'text: {test_sentences[1]}')
+        print(attention.shape)
+        attention = attention.numpy()
+        attention = attention.flatten()
+        print(show_pred(new_model(input_ids, attention_mask)))
+        plt.figure("text2")
+        plt.plot(attention)
+        plt.show()
